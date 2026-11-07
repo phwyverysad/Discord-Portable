@@ -5,15 +5,17 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  contents: write
+  pull-requests: write
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 9 * * *'
+    - cron: '0 */6 * * *'
   push:
     branches:
       - 'master'
+      - 'main'
   pull_request:
     paths:
       - '.github/workflows/update-app.yml'
@@ -24,40 +26,30 @@ jobs:
   update:
     if: github.event_name != 'pull_request'
     runs-on: windows-latest
-    environment: update-app # secrets are gated by this environment
-    timeout-minutes: 10
-    permissions:
-      contents: write
-      pull-requests: write
+    timeout-minutes: 15
     steps:
-      -
-        name: GitHub auth token from GitHub App
-        id: write-app
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
-          client-id: ${{ vars.PORTAPPS_BOT_CLIENT_ID }}
-          private-key: ${{ secrets.PORTAPPS_BOT_PRIVATE_KEY }}
-          owner: ${{ github.repository_owner }}
-          repositories: ${{ github.event.repository.name }}
-          permission-contents: write
-          permission-pull-requests: write
-      -
-        name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          token: ${{ steps.write-app.outputs.token }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
-          persist-credentials: false
-      -
-        name: Update Discord PTB
-        id: update
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          script: &update-script |
+          node-version: '20'
+
+      - name: Check and Update Discord PTB & Vencord
+        id: update
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
             const fs = require('fs');
             const path = require('path');
 
-            const sourceUrl = 'https://discord.com/api/updates/distributions/app/manifests/latest?channel=ptb&platform=win&arch=x64';
+            const discordManifestUrl = 'https://discord.com/api/updates/distributions/app/manifests/latest?channel=ptb&platform=win&arch=x64';
+            const vencordReleasesUrl = 'https://api.github.com/repos/Vendicated/Vencord/releases';
 
             function workspacePath(relativePath) {
               return path.join(process.env.GITHUB_WORKSPACE, relativePath);
@@ -74,25 +66,15 @@ jobs:
             function propertyValue(content, name) {
               const pattern = new RegExp(`^${name.replaceAll('.', '\\.')}\\s*=\\s*(.+)$`, 'm');
               const match = content.match(pattern);
-              if (!match) {
-                throw new Error(`Missing ${name} in build.properties`);
-              }
-              return match[1].trim();
+              return match ? match[1].trim() : null;
             }
 
             function replaceProperty(content, name, value) {
               const pattern = new RegExp(`^(${name.replaceAll('.', '\\.')}\\s*=\\s*).+$`, 'm');
               if (!pattern.test(content)) {
-                throw new Error(`Missing ${name} in build.properties`);
+                return content + `\n${name} = ${value}`;
               }
               return content.replace(pattern, `$1${value}`);
-            }
-
-            function versionFromParts(parts) {
-              if (!Array.isArray(parts) || parts.length === 0 || !parts.every((part) => Number.isInteger(part))) {
-                throw new Error(`Invalid Discord PTB host_version: ${JSON.stringify(parts)}`);
-              }
-              return parts.join('.');
             }
 
             function versionParts(version) {
@@ -107,131 +89,142 @@ jobs:
               const rightParts = versionParts(right);
               for (let i = 0; i < Math.max(leftParts.length, rightParts.length); i++) {
                 const diff = (leftParts[i] || 0) - (rightParts[i] || 0);
-                if (diff !== 0) {
-                  return diff;
-                }
+                if (diff !== 0) return diff;
               }
               return 0;
             }
 
-            function normalizeManifest(manifest) {
-              return `${JSON.stringify(manifest, null, 2)}\n`;
+            // 1. Fetch Discord PTB Manifest
+            core.info('Fetching latest Discord PTB manifest...');
+            const discordResp = await fetch(discordManifestUrl, {
+              headers: { 'accept': 'application/json', 'user-agent': 'discord-ptb-portable update-app' }
+            });
+            if (!discordResp.ok) {
+              throw new Error(`Failed to fetch Discord manifest: ${discordResp.status}`);
             }
+            const discordManifest = await discordResp.json();
+            const latestDiscordVer = discordManifest.full.host_version.join('.');
+            core.info(`Resolved latest Discord PTB version: ${latestDiscordVer}`);
 
-            function manifestVersion(manifest) {
-              const version = versionFromParts(manifest?.full?.host_version);
-              if (!manifest.full.url.includes(`/${version}/`)) {
-                throw new Error(`Manifest full.url does not match host_version ${version}: ${manifest.full.url}`);
+            // 2. Fetch Vencord Release
+            core.info('Fetching latest Vencord release...');
+            const vencordResp = await fetch(vencordReleasesUrl, {
+              headers: { 'accept': 'application/vnd.github+json', 'user-agent': 'discord-ptb-portable update-app' }
+            });
+            let latestVencordTag = 'devbuild';
+            let vencordReleaseName = 'DevBuild';
+            if (vencordResp.ok) {
+              const vencordReleases = await vencordResp.json();
+              if (Array.isArray(vencordReleases) && vencordReleases.length > 0) {
+                const rel = vencordReleases.find(r => r.assets && r.assets.some(a => a.name === 'patcher.js')) || vencordReleases[0];
+                latestVencordTag = rel.tag_name || 'devbuild';
+                vencordReleaseName = rel.name || latestVencordTag;
               }
-              return version;
             }
+            core.info(`Resolved latest Vencord tag: ${latestVencordTag} (${vencordReleaseName})`);
 
-            async function fetchManifest() {
-              const response = await fetch(sourceUrl, {
-                headers: {
-                  'accept': 'application/json',
-                  'user-agent': 'portapps/discord-ptb-portable update-app'
-                }
-              });
-              if (!response.ok) {
-                throw new Error(`Failed to fetch ${sourceUrl}: ${response.status} ${response.statusText}`);
-              }
-              return await response.json();
-            }
-
-            const latestManifest = await fetchManifest();
-            const latestVersion = manifestVersion(latestManifest);
-            const latestManifestContent = normalizeManifest(latestManifest);
-            core.info(`Resolved latest Discord PTB version: ${latestVersion}`);
-
+            // 3. Compare with build.properties
             const propertiesPath = 'build.properties';
             const manifestPath = 'res/pinned_update.json';
             const currentProperties = readFile(propertiesPath);
-            const currentManifest = readFile(manifestPath);
-            const currentVersion = propertyValue(currentProperties, 'app.version');
-            const currentRelease = Number(propertyValue(currentProperties, 'app.release'));
-            if (!Number.isInteger(currentRelease)) {
-              throw new Error(`Invalid app.release in ${propertiesPath}: ${currentRelease}`);
+            const currentManifest = fs.existsSync(workspacePath(manifestPath)) ? readFile(manifestPath) : '';
+
+            const currentDiscordVer = propertyValue(currentProperties, 'app.version') || '1.0.0';
+            const currentRelease = Number(propertyValue(currentProperties, 'app.release') || '1');
+            const currentVencordVer = propertyValue(currentProperties, 'vencord.version') || '';
+
+            const discordVerDiff = compareVersions(latestDiscordVer, currentDiscordVer);
+            if (discordVerDiff < 0) {
+              core.warning(`Discord upstream version (${latestDiscordVer}) is older than current (${currentDiscordVer})`);
             }
 
-            if (compareVersions(latestVersion, currentVersion) < 0) {
-              core.warning(`Refusing to downgrade Discord PTB from ${currentVersion} to ${latestVersion}`);
-              core.setOutput('title', `Discord PTB ${currentVersion}`);
-              core.setOutput('version', currentVersion);
-              core.setOutput('previous-version', currentVersion);
-              core.setOutput('release', String(currentRelease));
-              core.setOutput('version-changed', 'false');
-              core.setOutput('metadata-changed', 'false');
-              return;
+            const discordChanged = discordVerDiff > 0;
+            const vencordChanged = latestVencordTag !== currentVencordVer;
+            const nextRelease = discordChanged ? currentRelease + 1 : currentRelease;
+
+            let updatedProperties = currentProperties;
+            if (discordChanged) {
+              updatedProperties = replaceProperty(updatedProperties, 'app.version', latestDiscordVer);
+              updatedProperties = replaceProperty(updatedProperties, 'app.release', String(nextRelease));
+            }
+            if (vencordChanged) {
+              updatedProperties = replaceProperty(updatedProperties, 'vencord.version', latestVencordTag);
             }
 
-            let updatedProperties = replaceProperty(currentProperties, 'app.version', latestVersion);
-            const versionChanged = updatedProperties !== currentProperties;
-            const metadataChanged = versionChanged || latestManifestContent !== currentManifest;
-            const nextRelease = versionChanged ? currentRelease + 1 : currentRelease;
-            updatedProperties = replaceProperty(updatedProperties, 'app.release', String(nextRelease));
+            const normalizedManifest = `${JSON.stringify(discordManifest, null, 2)}\n`;
+            const manifestChanged = normalizedManifest !== currentManifest;
 
-            if (updatedProperties !== currentProperties) {
+            const hasChanges = discordChanged || vencordChanged || manifestChanged;
+
+            if (hasChanges) {
               writeFile(propertiesPath, updatedProperties);
-              core.info(`Updated ${propertiesPath}`);
+              writeFile(manifestPath, normalizedManifest);
+              core.info('Updated build.properties and res/pinned_update.json');
             } else {
-              core.info(`${propertiesPath} is already up to date`);
+              core.info('Everything is up-to-date. No changes detected.');
             }
 
-            if (latestManifestContent !== currentManifest) {
-              writeFile(manifestPath, latestManifestContent);
-              core.info(`Updated ${manifestPath}`);
-            } else {
-              core.info(`${manifestPath} is already up to date`);
-            }
+            const changeDesc = [];
+            if (discordChanged) changeDesc.push(`Discord PTB ${latestDiscordVer}`);
+            if (vencordChanged) changeDesc.push(`Vencord ${latestVencordTag}`);
+            const commitTitle = changeDesc.length > 0 ? `chore(update): ${changeDesc.join(' & ')}` : `chore(update): refresh pinned manifest`;
+            const tagName = `v${latestDiscordVer}-${nextRelease}`;
 
-            core.setOutput('title', `Discord PTB ${latestVersion}`);
-            core.setOutput('version', latestVersion);
-            core.setOutput('previous-version', currentVersion);
-            core.setOutput('release', String(nextRelease));
-            core.setOutput('version-changed', String(versionChanged));
-            core.setOutput('metadata-changed', String(metadataChanged));
-      -
-        name: Create pull request
-        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
-        with:
-          base: ${{ github.event.repository.default_branch }}
-          branch: update-discord-ptb
-          token: ${{ steps.write-app.outputs.token }}
-          commit-message: ${{ steps.update.outputs.title }}
-          title: ${{ steps.update.outputs.title }}
-          signoff: true
-          sign-commits: true
-          delete-branch: true
-          body: |
-            This updates Discord PTB to ${{ steps.update.outputs.version }}.
+            core.setOutput('has_changes', String(hasChanges));
+            core.setOutput('discord_changed', String(discordChanged));
+            core.setOutput('vencord_changed', String(vencordChanged));
+            core.setOutput('discord_version', latestDiscordVer);
+            core.setOutput('next_release', String(nextRelease));
+            core.setOutput('vencord_version', latestVencordTag);
+            core.setOutput('tag_name', tagName);
+            core.setOutput('commit_title', commitTitle);
+
+      - name: Download Updated Vencord Assets
+        if: steps.update.outputs.has_changes == 'true'
+        shell: pwsh
+        run: |
+          node scripts/setup_vencord.js
+
+      - name: Commit and Push Tag
+        if: steps.update.outputs.has_changes == 'true'
+        shell: pwsh
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add build.properties res/pinned_update.json res/vencord/
+          git commit -m "${{ steps.update.outputs.commit_title }}"
+          
+          # Tag and push
+          $tagName = "${{ steps.update.outputs.tag_name }}"
+          Write-Host "Creating tag: $tagName"
+          git tag $tagName
+          git push origin HEAD
+          git push origin $tagName
 
   diff:
     if: github.event_name == 'pull_request'
     runs-on: windows-latest
     timeout-minutes: 10
-    permissions:
-      contents: read # same as global permissions
     steps:
-      -
-        name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          persist-credentials: false
-      -
-        name: Update Discord PTB
-        id: update
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
-        with:
-          script: *update-script
-      -
-        name: Show diff
+
+      - name: Check for updates
         shell: pwsh
         run: |
-          $diff = git --no-pager diff -- build.properties res/pinned_update.json
-          if ($diff) {
-            $diff
-          } else {
-            Write-Host "No update diff."
-          }
+          node -e "
+          const https = require('https');
+          https.get('https://discord.com/api/updates/distributions/app/manifests/latest?channel=ptb&platform=win&arch=x64', {
+            headers: { 'User-Agent': 'discord-ptb-portable test' }
+          }, res => {
+            let d = '';
+            res.on('data', c => d += c);
+            res.on('end', () => {
+              const j = JSON.parse(d);
+              console.log('Latest Discord PTB host_version:', j.full.host_version);
+            });
+          });
+          "

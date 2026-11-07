@@ -5,19 +5,129 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  contents: write
 
 on:
   workflow_dispatch:
   push:
     branches:
       - 'master'
+      - 'main'
     tags:
+      - 'v*'
       - '*'
   pull_request:
 
 jobs:
   build:
-    uses: portapps/.github/.github/workflows/app-build.yml@e5160763f75f635b71a10d8162c004e7f88a1a87 # v1.4.1
-    permissions:
-      contents: write # required to create a GitHub release on push with a tag
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies & tools
+        shell: pwsh
+        run: |
+          npm install -g asar
+          go install github.com/josephspurrier/goversioninfo/cmd/goversioninfo@latest
+
+      - name: Prepare Vencord Assets & Shim
+        shell: pwsh
+        run: |
+          node scripts/setup_vencord.js
+
+      - name: Run Tests
+        shell: pwsh
+        run: |
+          go test -v ./pkg/...
+
+      - name: Build Launcher & WebSetup Binaries
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path bin | Out-Null
+          
+          # Generate Windows resources if needed
+          go generate ./...
+          
+          Write-Host "Building DiscordPTB-Portable.exe..."
+          go build -ldflags "-s -w -H=windowsgui" -o bin/DiscordPTB-Portable.exe main.go
+
+          Write-Host "Building Discord-WebSetup.exe..."
+          go build -ldflags "-s -w -H=windowsgui" -o bin/Discord-WebSetup.exe ./cmd/websetup
+
+          Get-ChildItem -Path bin/
+
+      - name: Package Portable Distribution
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          
+          # Copy executables
+          Copy-Item bin/DiscordPTB-Portable.exe dist/
+          Copy-Item bin/Discord-WebSetup.exe dist/
+          
+          # Copy resources and docs
+          Copy-Item -Recurse -Force res dist/
+          Copy-Item -Recurse -Force docs dist/
+          Copy-Item README.md dist/
+          Copy-Item LICENSE dist/
+          Copy-Item build.properties dist/
+
+          # Create distribution zip
+          Compress-Archive -Path dist/* -DestinationPath release-discord-ptb-portable-win64.zip -Force
+
+          # Compute SHA-256 Checksums
+          $files = @(
+            "bin/DiscordPTB-Portable.exe",
+            "bin/Discord-WebSetup.exe",
+            "release-discord-ptb-portable-win64.zip"
+          )
+          
+          $checksums = foreach ($file in $files) {
+            if (Test-Path $file) {
+              $hash = (Get-FileHash -Path $file -Algorithm SHA256).Hash.ToLower()
+              $leaf = Split-Path $file -Leaf
+              "$hash  $leaf"
+            }
+          }
+          $checksums | Out-File -FilePath sha256sums.txt -Encoding utf8
+          Write-Host "Generated sha256sums.txt:"
+          Get-Content sha256sums.txt
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: discord-ptb-portable-win64
+          path: |
+            bin/DiscordPTB-Portable.exe
+            bin/Discord-WebSetup.exe
+            release-discord-ptb-portable-win64.zip
+            sha256sums.txt
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          files: |
+            bin/DiscordPTB-Portable.exe
+            bin/Discord-WebSetup.exe
+            release-discord-ptb-portable-win64.zip
+            sha256sums.txt
+          generate_release_notes: true
+          draft: false
+          prerelease: false

@@ -9,3 +9,7 @@
 /*.syso
 /*.exe
 /versioninfo.json
+
+# Agent & temporary files
+/.agent
+/test_*.exe

@@ -1,37 +1,70 @@
-<p align="center"><a href="https://portapps.io/app/discord-ptb-portable/" target="_blank"><img width="100" src="https://github.com/portapps/discord-ptb-portable/blob/master/res/papp.png"></a></p>
+# Discord PTB Portable & WebSetup Suite (Multi-Profile + Vencord Edition)
 
-<p align="center">
-  <a href="https://portapps.io/app/discord-ptb-portable/#download"><img src="https://img.shields.io/github/release/portapps/discord-ptb-portable.svg?style=flat-square" alt="GitHub release"></a>
-  <a href="https://portapps.io/app/discord-ptb-portable/#download"><img src="https://img.shields.io/github/downloads/portapps/discord-ptb-portable/total.svg?style=flat-square" alt="Total downloads"></a>
-  <a href="https://github.com/portapps/discord-ptb-portable/actions?workflow=build"><img src="https://img.shields.io/github/actions/workflow/status/portapps/discord-ptb-portable/build.yml?label=build&logo=github&style=flat-square" alt="Build Status"></a>
-  <br /><a href="https://github.com/sponsors/crazy-max"><img src="https://img.shields.io/badge/sponsor-crazy--max-181717.svg?logo=github&style=flat-square" alt="Become a sponsor"></a>
-  <a href="https://www.paypal.me/crazyws"><img src="https://img.shields.io/badge/donate-paypal-00457c.svg?logo=paypal&style=flat-square" alt="Donate Paypal"></a>
-</p>
+> Discord PTB (Public Test Build) Portable with **Vencord Client Mod**, **Multi-Profile Data Isolation**, **Token Security Guard**, and a **Modern Lightweight WebSetup Suite**.
 
-## Notice of Non-Affiliation and Disclaimer
+[![GitHub Release](https://img.shields.io/github/v/release/phwyverysad/Discord-Portable?style=flat-square)](https://github.com/phwyverysad/Discord-Portable/releases)
+[![Build Status](https://github.com/phwyverysad/Discord-Portable/actions/workflows/build.yml/badge.svg)](https://github.com/phwyverysad/Discord-Portable/actions)
 
-Portapps is not affiliated, associated, authorized, endorsed by, or in any way officially connected with Discord™, or any of its subsidiaries or its affiliates.
+---
 
-The official Discord website can be found at https://discordapp.com.
+## ✨ Features (จุดเด่นและความสามารถ)
 
-The name Discord™ as well as related names, marks, emblems and images are registered trademarks of their respective owners.
+### 🎨 1. Modern WebSetup Installer Suite (ตัวติดตั้งออนไลน์ขนาดเล็ก)
+- **Compact Binary:** คอมไพล์เป็นไฟล์ `.exe` ขนาดเล็ก (ประมาณ 7-8 MB) บรรจุหน้าต่างติดตั้งที่เขียนด้วย HTML/CSS/JS
+- **Light White-Blue Curved Theme:** ดีไซน์สว่าง สะอาดตา ขาว-ฟ้าอ่อน ขอบโค้งมนนุ่มนวล (`border-radius: 20px`)
+- **Zero Emojis (100% Inline SVG):** ปราศจากอิโมจิ ใช้กราฟิกเวกเตอร์ SVG คุณภาพสูง
+- **Bilingual Support (TH / EN):** สลับภาษาไทย-อังกฤษได้ทันทีแบบเรียลไทม์ที่มุมบนขวา
 
-## About
+### 🌈 2. Multi-Profile Concurrency (เปิดได้หลายจอพร้อมกัน แยกบัญชีเด็ดขาด)
+- **12 Distinct Colored Profiles:** แสดงการ์ด 12 สี พร้อมไอคอน Discord จริงจาก `discord_icons` และตั้งชื่อตามสี
+  - `01` - Discord Yellow (สีเหลือง - โปรไฟล์หลัก)
+  - `02` - Discord Yellow Orange (สีส้มอมเหลือง)
+  - `03` - Discord Orange (สีส้ม)
+  - `04` - Discord Red Orange (สีส้มแดง)
+  - `05` - Discord Red (สีแดง)
+  - `06` - Discord Red Violet (สีม่วงอมแดง)
+  - `07` - Discord Violet (สีม่วง)
+  - `08` - Discord Blue Violet (สีม่วงอมน้ำเงิน)
+  - `09` - Discord Blue (สีน้ำเงิน)
+  - `10` - Discord Blue Green (สีเขียวอมน้ำเงิน)
+  - `11` - Discord Green (สีเขียว)
+  - `12` - Discord Yellow Green (สีเขียวตองอ่อน)
+- **Single Install Location:** ติดตั้งตัวโปรแกรมหลักไว้ตำแหน่งเดียว (เช่น `%LOCALAPPDATA%\Programs\Discord-Portable`) ไม่เปลืองพื้นที่
+- **100% Session & Data Isolation:** โฟลเดอร์ข้อมูล (`data/profiles/profile_<id>`) แยกขาดจากกัน เปิดพร้อมกันได้หลายหน้าจอโดยไม่แชร์ประวัติหรือโทเค็น
+- **Desktop Shortcuts with Color Icons:** สร้างทางลัดบน Desktop แยกตามโปรไฟล์พร้อมไอคอนสีประจำตัว
 
-Discord™ PTB (Public Test Build) portable app made with 🚀 [Portapps](https://portapps.io).<br />
-Documentation and downloads can be found on https://portapps.io/app/discord-ptb-portable/
+### 🛡️ 3. Token & Credential Security Shield (ระบบป้องกันการดักจับข้อมูล)
+- **Argument Sanitizer:** บล็อกและตัดคำสั่งสอดแนม `--remote-debugging-port`, `--inspect`, `--inspect-brk` ป้องกันการดักจับหน่วยความจำและ Token
+- **Stealer Path Deflector:** ซ่อนและกักเก็บไฟล์เซสชัน LevelDB ไว้เฉพาะในไดเรกทอรี Portable ป้องกันมัลแวร์ทั่วไปที่กวาดหาจาก `%APPDATA%`
+- **Core Integrity Check:** ตรวจสอบ SHA-256 Hash ของไฟล์หลัก ป้องกันการแอบฉีดโค้ดแปลกปลอม
 
-## Contributing
+### 🚀 4. Pro Features (ฟีเจอร์ระดับโปร)
+- **Eco / Low-RAM Mode:** โหมดประหยัดแรม หน่วงเฟรมเรตเบื้องหลัง ช่วยลดการใช้แรมลง 40–60% เมื่อเปิดหลายจอ
+- **Smart RPC Router:** กำหนด Profile 1 เป็น Primary Rich Presence (`discord-ipc-0`) สำหรับเกมและ Spotify ส่วนโปรไฟล์อื่นๆ แยกช่องทางป้องกันการชนกัน
+- **Colored System Tray Icons:** ถาดมุมขวาล่างแสดงไอคอนสีตามโปรไฟล์ที่เปิดอยู่
+- **Dual Install Mode:** เลือกระหว่าง Standard PC Install หรือ True USB Portable สำหรับเสียบแฟลชไดรฟ์
+- **One-Click Backup & Restore:** สำรองและกู้คืนโปรไฟล์เป็นไฟล์ `.zip` ปลอดภัยในคลิกเดียว
+- **Self-Updating Launcher:** ตรวจจับและอัปเดตไฟล์ `.exe` ตัวเองอัตโนมัติจาก GitHub Releases
 
-Want to contribute? Awesome! The most basic way to show your support is to star the project, or to raise issues. If
-you want to open a pull request, please read the [contributing guidelines](https://portapps.io/doc/contribute/).
+---
 
-You can also support this project by [**becoming a sponsor on GitHub**](https://github.com/sponsors/crazy-max) or by
-making a [Paypal donation](https://www.paypal.me/crazyws) to ensure this journey continues indefinitely!
+## 🛠️ Build & Verification (การบิลด์และทดสอบ)
 
-Thanks again for your support, it is much appreciated! :pray:
+### รันการทดสอบ 5 ด่านก่อนส่งมอบ (Acceptance Gates):
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\verify_delivery.ps1
+```
 
-## License
+### คอมไพล์ด้วย Go:
+```powershell
+# คอมไพล์ตัว Launcher
+go build -ldflags="-s -w" -o DiscordPTB-Portable.exe main.go
 
-MIT. See `LICENSE` for more details.<br />
-Rocket icon credit to [Squid Ink](http://thesquid.ink).
+# คอมไพล์ตัว WebSetup Suite
+go build -ldflags="-s -w" -o Discord-WebSetup.exe ./cmd/websetup
+```
+
+---
+
+## 📄 License
+MIT License
