@@ -153,6 +153,15 @@ func framelessWndProc(hwnd uintptr, msg uint32, wp, lp uintptr) uintptr {
 	return r
 }
 
+func isKnownProfile(id string) bool {
+	for _, p := range allProfiles {
+		if strings.EqualFold(p.ID, id) {
+			return true
+		}
+	}
+	return false
+}
+
 func getInstalledProfiles(rootDir string) []string {
 	profilesDir := filepath.Join(rootDir, "data", "profiles")
 	entries, err := os.ReadDir(profilesDir)
@@ -161,11 +170,46 @@ func getInstalledProfiles(rootDir string) []string {
 	}
 	var installed []string
 	for _, entry := range entries {
-		if entry.IsDir() && !strings.EqualFold(entry.Name(), "discordptb") {
+		if entry.IsDir() && isKnownProfile(entry.Name()) {
 			installed = append(installed, entry.Name())
 		}
 	}
 	return installed
+}
+
+func resolveLauncher(rootDir string) string {
+	candidates := []string{
+		filepath.Join(rootDir, "DiscordPTB-Portable.exe"),
+		filepath.Join(rootDir, "Discord-Portable.exe"),
+	}
+	exePath, err := os.Executable()
+	if err == nil {
+		candidates = append(candidates,
+			filepath.Join(filepath.Dir(exePath), "DiscordPTB-Portable.exe"),
+			filepath.Join(filepath.Dir(exePath), "Discord-Portable.exe"),
+		)
+	}
+	for _, c := range candidates {
+		if _, err := os.Stat(c); err == nil {
+			return c
+		}
+	}
+	return filepath.Join(rootDir, "DiscordPTB-Portable.exe")
+}
+
+func resolveIconDir(rootDir string) string {
+	candidate := filepath.Join(rootDir, "res", "icons")
+	if _, err := os.Stat(candidate); err == nil {
+		return candidate
+	}
+	exePath, err := os.Executable()
+	if err == nil {
+		cand2 := filepath.Join(filepath.Dir(exePath), "res", "icons")
+		if _, err := os.Stat(cand2); err == nil {
+			return cand2
+		}
+	}
+	return candidate
 }
 
 func profileDisplayName(prof string) string {
@@ -260,6 +304,90 @@ func (s *ManagerServer) handleState(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func terminateProfileProcesses(rootDir, profileID string) {
+	if rootDir == "" || profileID == "" {
+		return
+	}
+	absDir, err := filepath.Abs(rootDir)
+	if err != nil {
+		absDir = rootDir
+	}
+	currentPID := os.Getpid()
+	psCmd := fmt.Sprintf(
+		"Get-CimInstance Win32_Process | Where-Object { $_.ProcessId -ne %d -and $_.Name -ne 'Discord-ProfileManager.exe' -and ($_.CommandLine -like '*--profile=%s*' -or $_.CommandLine -like '*profiles\\%s*') -and $_.ExecutablePath -like '%s*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }",
+		currentPID,
+		profileID,
+		profileID,
+		absDir,
+	)
+	cmd := exec.Command("powershell.exe", "-NoProfile", "-NonInteractive", "-Command", psCmd)
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	_ = cmd.Run()
+}
+
+func executeFullUninstall(rootDir, desktopDir, startMenuDir string, parentPid int) error {
+	// 1. Unregister Context Menu completely from registry
+	shell.UnregisterDiscordContextMenu()
+
+	// 2. Remove desktop shortcuts for all 12 profiles and generic shortcuts
+	for _, p := range allProfiles {
+		dispName := profileDisplayName(p.ID)
+		_ = os.Remove(filepath.Join(desktopDir, fmt.Sprintf("%s.lnk", dispName)))
+	}
+	_ = os.Remove(filepath.Join(desktopDir, "Discord-Portable.lnk"))
+	_ = os.Remove(filepath.Join(desktopDir, "DiscordPTB-Portable.lnk"))
+
+	// Clean up any other Discord *.lnk shortcuts from desktop
+	if entries, err := os.ReadDir(desktopDir); err == nil {
+		for _, e := range entries {
+			lowerName := strings.ToLower(e.Name())
+			if strings.HasPrefix(lowerName, "discord") && strings.HasSuffix(lowerName, ".lnk") {
+				_ = os.Remove(filepath.Join(desktopDir, e.Name()))
+			}
+		}
+	}
+
+	// 3. Remove Start Menu directory
+	_ = os.RemoveAll(startMenuDir)
+
+	// 4. Create detached cleanup batch file in %TEMP%
+	batchScriptPath := filepath.Join(os.TempDir(), fmt.Sprintf("discord_clean_%d.cmd", time.Now().UnixNano()))
+	cleanCmd := fmt.Sprintf(`@echo off
+set "PARENT_PID=%%~1"
+set "TARGET_DIR=%%~2"
+
+:wait_pid
+if not "%%PARENT_PID%%"=="" if not "%%PARENT_PID%%"=="0" (
+    tasklist /fi "PID eq %%PARENT_PID%%" 2>nul | findstr /i "%%PARENT_PID%%" >nul
+    if not errorlevel 1 (
+        timeout /t 1 /nobreak >nul
+        goto wait_pid
+    )
+)
+
+powershell.exe -NoProfile -NonInteractive -Command "Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -like '%%TARGET_DIR%%\*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }" >nul 2>&1
+taskkill /f /im DiscordPTB.exe >nul 2>&1
+taskkill /f /im DiscordPTB-Portable.exe >nul 2>&1
+taskkill /f /im Discord-ProfileManager.exe >nul 2>&1
+
+for /l %%%%i in (1, 1, 30) do (
+    if not exist "%%TARGET_DIR%%" goto done
+    rd /s /q "%%TARGET_DIR%%" >nul 2>&1
+    if not exist "%%TARGET_DIR%%" goto done
+    timeout /t 1 /nobreak >nul
+)
+
+:done
+del "%%~f0" >nul 2>&1
+`)
+
+	_ = os.WriteFile(batchScriptPath, []byte(cleanCmd), 0644)
+
+	cmd := exec.Command("cmd.exe", "/C", "start", "", "/B", batchScriptPath, strconv.Itoa(parentPid), rootDir)
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	return cmd.Start()
+}
+
 func (s *ManagerServer) handleExecute(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -280,14 +408,10 @@ func (s *ManagerServer) handleExecute(w http.ResponseWriter, r *http.Request) {
 
 	desktopDir := filepath.Join(os.Getenv("USERPROFILE"), "Desktop")
 	startMenuDir := filepath.Join(os.Getenv("APPDATA"), "Microsoft", "Windows", "Start Menu", "Programs", "Discord Portable")
-	iconDir := filepath.Join(s.rootDir, "res", "icons")
-	targetLauncher := filepath.Join(s.rootDir, "DiscordPTB-Portable.exe")
-	if _, err := os.Stat(targetLauncher); os.IsNotExist(err) {
-		targetLauncher = filepath.Join(s.rootDir, "Discord-Portable.exe")
-	}
+	iconDirectory := resolveIconDir(s.rootDir)
+	launcherPath := resolveLauncher(s.rootDir)
 
 	if req.Action == "add" {
-		// Install additional profiles
 		profilesBaseDir := filepath.Join(s.rootDir, "data", "profiles")
 		for _, prof := range req.Profiles {
 			profDir := filepath.Join(profilesBaseDir, prof)
@@ -299,23 +423,23 @@ func (s *ManagerServer) handleExecute(w http.ResponseWriter, r *http.Request) {
 
 			dispName := profileDisplayName(prof)
 			shortcutName := fmt.Sprintf("%s.lnk", dispName)
-			iconFile := resolveIcon(prof, iconDir)
+			iconFile := resolveIcon(prof, iconDirectory)
 			aumid := fmt.Sprintf("Discord.PTB.Profile.%s", prof)
 			args := fmt.Sprintf("--profile=%s", prof)
 
 			// Desktop shortcut
 			desktopLnk := filepath.Join(desktopDir, shortcutName)
-			_ = shell.CreateProfileShortcut(desktopLnk, targetLauncher, args, iconFile, aumid, dispName, s.rootDir)
+			_ = shell.CreateProfileShortcut(desktopLnk, launcherPath, args, iconFile, aumid, dispName, s.rootDir)
 
 			// Start Menu shortcut (for Windows 11 Shell Taskbar AUMID matching)
 			_ = os.MkdirAll(startMenuDir, 0755)
 			startMenuLnk := filepath.Join(startMenuDir, shortcutName)
-			_ = shell.CreateProfileShortcut(startMenuLnk, targetLauncher, args, iconFile, aumid, dispName, s.rootDir)
+			_ = shell.CreateProfileShortcut(startMenuLnk, launcherPath, args, iconFile, aumid, dispName, s.rootDir)
 		}
 
 		// Ensure context menu keys are registered pointing to this manager
 		managerExe, _ := os.Executable()
-		_ = shell.RegisterDiscordContextMenu(managerExe, iconDir)
+		_ = shell.RegisterDiscordContextMenu(managerExe, iconDirectory)
 
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]bool{"success": true})
@@ -324,32 +448,7 @@ func (s *ManagerServer) handleExecute(w http.ResponseWriter, r *http.Request) {
 
 	if req.Action == "uninstall" {
 		if req.All {
-			// Complete Uninstall: kill processes, remove all shortcuts, unregister context menu, delete directory
-			terminateDirectoryProcesses(s.rootDir)
-
-			// Remove desktop shortcuts for all 12 profiles
-			for _, p := range allProfiles {
-				dispName := profileDisplayName(p.ID)
-				_ = os.Remove(filepath.Join(desktopDir, fmt.Sprintf("%s.lnk", dispName)))
-			}
-			_ = os.Remove(filepath.Join(desktopDir, "Discord-Portable.lnk"))
-			_ = os.Remove(filepath.Join(desktopDir, "DiscordPTB-Portable.lnk"))
-
-			// Remove Start Menu directory
-			_ = os.RemoveAll(startMenuDir)
-
-			// Unregister Context Menu completely from registry
-			shell.UnregisterDiscordContextMenu()
-
-			// Launch self-cleanup script that waits for manager to exit and deletes directory
-			cleanupScript := fmt.Sprintf(
-				"Start-Sleep -Milliseconds 800; Remove-Item -LiteralPath '%s' -Recurse -Force -ErrorAction SilentlyContinue",
-				s.rootDir,
-			)
-			cleanupCmd := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-Command", cleanupScript)
-			cleanupCmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000}
-			_ = cleanupCmd.Start()
-
+			_ = executeFullUninstall(s.rootDir, desktopDir, startMenuDir, os.Getpid())
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(map[string]bool{"success": true})
 			return
@@ -357,6 +456,8 @@ func (s *ManagerServer) handleExecute(w http.ResponseWriter, r *http.Request) {
 
 		// Partial Uninstall: remove chosen profiles only
 		for _, prof := range req.Profiles {
+			terminateProfileProcesses(s.rootDir, prof)
+
 			dispName := profileDisplayName(prof)
 			shortcutName := fmt.Sprintf("%s.lnk", dispName)
 
@@ -369,6 +470,12 @@ func (s *ManagerServer) handleExecute(w http.ResponseWriter, r *http.Request) {
 			// Remove profile directory
 			profDir := filepath.Join(s.rootDir, "data", "profiles", prof)
 			_ = os.RemoveAll(profDir)
+		}
+
+		// If no profiles left after deletion, perform full uninstall
+		remaining := getInstalledProfiles(s.rootDir)
+		if len(remaining) == 0 {
+			_ = executeFullUninstall(s.rootDir, desktopDir, startMenuDir, os.Getpid())
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -418,10 +525,14 @@ func (s *ManagerServer) handleWindowMove(w http.ResponseWriter, r *http.Request)
 }
 
 func main() {
+
 	procFreeConsole.Call()
 
 	actionFlag := flag.String("action", "add", "Action mode: add or uninstall")
 	dirFlag := flag.String("dir", "", "Target installation directory")
+	silentFlag := flag.Bool("silent", false, "Run silently without UI")
+	allFlag := flag.Bool("all", false, "Execute for all profiles")
+	profilesFlag := flag.String("profiles", "", "Comma-separated list of profile IDs")
 	flag.Parse()
 
 	action := strings.ToLower(strings.TrimSpace(*actionFlag))
@@ -433,13 +544,87 @@ func main() {
 	if err != nil {
 		os.Exit(1)
 	}
-	rootDir := *dirFlag
-	if rootDir == "" {
+	rootDirRaw := strings.Trim(strings.TrimSpace(*dirFlag), "\"")
+	var rootDir string
+	if rootDirRaw == "" {
 		rootDir = filepath.Dir(exePath)
+	} else {
+		rootDir = filepath.Clean(rootDirRaw)
 	}
 	if _, err := os.Stat(filepath.Join(rootDir, "res")); os.IsNotExist(err) {
 		// If running from cmd/manager during development
 		rootDir = filepath.Dir(filepath.Dir(rootDir))
+	}
+
+	if *silentFlag {
+		desktopDir := filepath.Join(os.Getenv("USERPROFILE"), "Desktop")
+		startMenuDir := filepath.Join(os.Getenv("APPDATA"), "Microsoft", "Windows", "Start Menu", "Programs", "Discord Portable")
+		launcherPath := resolveLauncher(rootDir)
+		iconDirectory := resolveIconDir(rootDir)
+
+		if action == "uninstall" {
+			if *allFlag || len(getInstalledProfiles(rootDir)) == 0 {
+				_ = executeFullUninstall(rootDir, desktopDir, startMenuDir, os.Getpid())
+			} else if *profilesFlag != "" {
+				for _, p := range strings.Split(*profilesFlag, ",") {
+					p = strings.TrimSpace(p)
+					if isKnownProfile(p) {
+						terminateProfileProcesses(rootDir, p)
+						dispName := profileDisplayName(p)
+						_ = os.Remove(filepath.Join(desktopDir, fmt.Sprintf("%s.lnk", dispName)))
+						_ = os.Remove(filepath.Join(startMenuDir, fmt.Sprintf("%s.lnk", dispName)))
+						_ = os.RemoveAll(filepath.Join(rootDir, "data", "profiles", p))
+					}
+				}
+				if len(getInstalledProfiles(rootDir)) == 0 {
+					_ = executeFullUninstall(rootDir, desktopDir, startMenuDir, os.Getpid())
+				}
+			}
+		} else if action == "add" {
+			var targets []string
+			if *profilesFlag != "" {
+				for _, p := range strings.Split(*profilesFlag, ",") {
+					p = strings.TrimSpace(p)
+					if isKnownProfile(p) {
+						targets = append(targets, p)
+					}
+				}
+			} else if *allFlag {
+				inst := make(map[string]bool)
+				for _, p := range getInstalledProfiles(rootDir) {
+					inst[p] = true
+				}
+				for _, p := range allProfiles {
+					if !inst[p.ID] {
+						targets = append(targets, p.ID)
+					}
+				}
+			}
+			profilesBaseDir := filepath.Join(rootDir, "data", "profiles")
+			for _, prof := range targets {
+				profDir := filepath.Join(profilesBaseDir, prof)
+				_ = security.ProtectPath(profDir)
+				settingsPath := filepath.Join(profDir, "settings.json")
+				_ = os.WriteFile(settingsPath, []byte("{\n  \"SKIP_HOST_UPDATE\": true,\n  \"USE_PINNED_UPDATE_MANIFEST\": true\n}"), 0644)
+
+				dispName := profileDisplayName(prof)
+				shortcutName := fmt.Sprintf("%s.lnk", dispName)
+				iconFile := resolveIcon(prof, iconDirectory)
+				aumid := fmt.Sprintf("Discord.PTB.Profile.%s", prof)
+				args := fmt.Sprintf("--profile=%s", prof)
+
+				desktopLnk := filepath.Join(desktopDir, shortcutName)
+				_ = shell.CreateProfileShortcut(desktopLnk, launcherPath, args, iconFile, aumid, dispName, rootDir)
+
+				_ = os.MkdirAll(startMenuDir, 0755)
+				startMenuLnk := filepath.Join(startMenuDir, shortcutName)
+				_ = shell.CreateProfileShortcut(startMenuLnk, launcherPath, args, iconFile, aumid, dispName, rootDir)
+			}
+			managerExe, _ := os.Executable()
+			_ = shell.RegisterDiscordContextMenu(managerExe, iconDirectory)
+		}
+		time.Sleep(300 * time.Millisecond)
+		os.Exit(0)
 	}
 
 	ln, err := net.Listen("tcp", "127.0.0.1:0")

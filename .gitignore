@@ -16,3 +16,4 @@
 /app/
 /data/
 /log/
+cmd/websetup/embedded/*.exe

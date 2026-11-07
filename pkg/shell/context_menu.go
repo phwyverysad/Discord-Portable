@@ -59,7 +59,7 @@ func RegisterDiscordContextMenu(managerExePath, iconDir string) error {
 		"ติดตั้งเพิ่มเติม",
 		lnkFilter,
 		addIcon,
-		fmt.Sprintf("\"%s\" --action=add", absManager),
+		fmt.Sprintf("\"%s\" --action=add --dir=\"%s\"", absManager, filepath.Dir(absManager)),
 	); err != nil {
 		return err
 	}
@@ -70,7 +70,7 @@ func RegisterDiscordContextMenu(managerExePath, iconDir string) error {
 		"ถอนการติดตั้ง",
 		lnkFilter,
 		uninstallIcon,
-		fmt.Sprintf("\"%s\" --action=uninstall", absManager),
+		fmt.Sprintf("\"%s\" --action=uninstall --dir=\"%s\"", absManager, filepath.Dir(absManager)),
 	); err != nil {
 		return err
 	}
@@ -81,7 +81,7 @@ func RegisterDiscordContextMenu(managerExePath, iconDir string) error {
 		"ติดตั้งเพิ่มเติม",
 		exeFilter,
 		addIcon,
-		fmt.Sprintf("\"%s\" --action=add", absManager),
+		fmt.Sprintf("\"%s\" --action=add --dir=\"%s\"", absManager, filepath.Dir(absManager)),
 	); err != nil {
 		return err
 	}
@@ -92,7 +92,7 @@ func RegisterDiscordContextMenu(managerExePath, iconDir string) error {
 		"ถอนการติดตั้ง",
 		exeFilter,
 		uninstallIcon,
-		fmt.Sprintf("\"%s\" --action=uninstall", absManager),
+		fmt.Sprintf("\"%s\" --action=uninstall --dir=\"%s\"", absManager, filepath.Dir(absManager)),
 	); err != nil {
 		return err
 	}

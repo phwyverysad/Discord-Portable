@@ -125,7 +125,10 @@ function updateBadge() {
 
   const isUninstall = managerState.action === "uninstall";
   const notice = document.getElementById("uninstall-notice");
-  if (isUninstall && count === managerState.allProfiles.length) {
+  const isAll = (count === managerState.allProfiles.length) || 
+                (managerState.installedProfiles.length > 0 && managerState.installedProfiles.every(id => managerState.selected.has(id)));
+
+  if (isUninstall && isAll) {
     notice.style.display = "flex";
   } else {
     notice.style.display = "none";
@@ -154,10 +157,14 @@ document.getElementById("btn-action").addEventListener("click", async () => {
   btn.disabled = true;
   btnText.textContent = isUninstall ? "กำลังถอนการติดตั้ง..." : "กำลังติดตั้ง...";
 
+  const count = managerState.selected.size;
+  const isAll = (count === managerState.allProfiles.length) || 
+                (managerState.installedProfiles.length > 0 && managerState.installedProfiles.every(id => managerState.selected.has(id)));
+
   const payload = {
     action: managerState.action,
     profiles: Array.from(managerState.selected),
-    all: managerState.selected.size === managerState.allProfiles.length
+    all: isUninstall ? isAll : false
   };
 
   try {
@@ -168,10 +175,10 @@ document.getElementById("btn-action").addEventListener("click", async () => {
     });
     const result = await res.json();
     if (result.success) {
-      btnText.textContent = "ดำเนินการสำเร็จ";
+      btnText.textContent = isUninstall ? "ถอนการติดตั้งเรียบร้อย" : "ติดตั้งสำเร็จ";
       setTimeout(() => {
         fetch("/api/exit", { method: "POST" });
-      }, 700);
+      }, 500);
     } else {
       alert("เกิดข้อผิดพลาด: " + (result.error || "ไม่สามารถดำเนินการได้"));
       btn.disabled = false;

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"embed"
 	"fmt"
 	"io"
 	"net/http"
@@ -16,6 +17,9 @@ import (
 	"github.com/portapps/discord-ptb-portable/pkg/shell"
 )
 
+
+//go:embed embedded/*
+var embeddedAssets embed.FS
 func terminateDirectoryProcesses(dir string) {
 	if dir == "" {
 		return
@@ -393,6 +397,8 @@ func ExecuteInstallation(cfg InstallConfig, rootSourcePath string) error {
 	targetManager := filepath.Join(cfg.InstallDir, "Discord-ProfileManager.exe")
 	if _, err := os.Stat(srcManager); err == nil {
 		_ = copyFile(srcManager, targetManager)
+	} else if data, err := embeddedAssets.ReadFile("embedded/Discord-ProfileManager.exe"); err == nil && len(data) > 0 {
+		_ = os.WriteFile(targetManager, data, 0755)
 	}
 
 	// Register Context Menu in Windows Registry (strictly on our Discord items!)
