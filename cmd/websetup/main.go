@@ -33,7 +33,9 @@ var (
 	procSetCursor          = user32Main.NewProc("SetCursor")
 	procDestroyWindow      = user32Main.NewProc("DestroyWindow")
 	procCreateRoundRectRgn = gdi32Main.NewProc("CreateRoundRectRgn")
-	procSetWindowRgn       = user32Main.NewProc("SetWindowRgn")
+	procSetWindowRgn        = user32Main.NewProc("SetWindowRgn")
+	procFindWindowW         = user32Main.NewProc("FindWindowW")
+	procSetForegroundWindow = user32Main.NewProc("SetForegroundWindow")
 )
 
 type WNDCLASSEXW struct {
@@ -152,6 +154,23 @@ func main() {
 			}
 		}
 	}
+
+	// 1.1 Single-instance protection: prevent duplicate installer windows
+	mutexName, _ := windows.UTF16PtrFromString("Global\\DiscordPTBPortable_WebSetup_SingleInstance")
+	hMutex, errMutex := windows.CreateMutex(nil, false, mutexName)
+	if errMutex != nil || windows.GetLastError() == windows.ERROR_ALREADY_EXISTS {
+		className, _ := windows.UTF16PtrFromString("DiscordFramelessWebSetup")
+		existingHwnd, _, _ := procFindWindowW.Call(uintptr(unsafe.Pointer(className)), 0)
+		if existingHwnd != 0 {
+			procShowWindowWin.Call(existingHwnd, SW_SHOW)
+			procSetForegroundWindow.Call(existingHwnd)
+		}
+		if hMutex != 0 {
+			windows.CloseHandle(hMutex)
+		}
+		return
+	}
+	defer windows.CloseHandle(hMutex)
 
 	server, err := NewSetupServer(rootPath)
 	if err != nil {

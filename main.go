@@ -51,7 +51,7 @@ func init() {
 	}
 }
 
-func parseFlags(rawArgs []string) (profile string, eco bool, backupMode bool, restorePath string, filteredArgs []string) {
+func parseFlags(rawArgs []string) (profile string, eco bool, vencordMode bool, backupMode bool, restorePath string, filteredArgs []string) {
 	profile = "01_yellow"
 	for _, arg := range rawArgs {
 		switch {
@@ -59,6 +59,8 @@ func parseFlags(rawArgs []string) (profile string, eco bool, backupMode bool, re
 			profile = strings.TrimPrefix(arg, "--profile=")
 		case arg == "--eco":
 			eco = true
+		case arg == "--vencord":
+			vencordMode = true
 		case arg == "--backup":
 			backupMode = true
 		case strings.HasPrefix(arg, "--restore="):
@@ -105,7 +107,7 @@ func main() {
 		log.Warn().Strs("stripped_flags", stripped).Msg("Security Shield: Intercepted and blocked suspicious arguments")
 	}
 
-	profileID, ecoMode, doBackup, restoreFile, remainingArgs := parseFlags(safeArgs)
+	profileID, ecoMode, vencordMode, doBackup, restoreFile, remainingArgs := parseFlags(safeArgs)
 
 	profilesBaseDir := filepath.Join(app.RootPath, "data", "profiles")
 
@@ -159,6 +161,10 @@ func main() {
 	launchArgs := []string{
 		"--user-data-dir=" + profileDataPath,
 		"--multi-instance",
+	}
+
+	if !vencordMode {
+		launchArgs = append(launchArgs, "--vanilla")
 	}
 
 	// 6. Pro Feature: Eco / Low-RAM Mode
@@ -221,6 +227,8 @@ func main() {
 
 	// Resolve custom colored icon for this profile
 	profileIcon := resolveIcon(profileID, app.RootPath)
+	_ = os.Setenv("DISCORD_PORTABLE_PROFILE", profileID)
+	_ = os.Setenv("DISCORD_PORTABLE_ICON", profileIcon)
 
 	// Manage Start Menu & Desktop Shortcut with dedicated colored icon
 	shortcutName := fmt.Sprintf("Discord (%s).lnk", profileID)

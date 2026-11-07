@@ -31,9 +31,32 @@ type InstallStatus struct {
 }
 
 var (
-	currentStatus = InstallStatus{Percent: 0, Message: "Ready"}
-	statusMutex   sync.RWMutex
+	currentStatus       = InstallStatus{Percent: 0, Message: "Ready"}
+	statusMutex         sync.RWMutex
+	installInProgress   bool
+	installRunningMutex sync.Mutex
 )
+
+func resolveSetupIcon(profileID, iconDir string) string {
+	id := strings.TrimSpace(profileID)
+	directMatch := filepath.Join(iconDir, id+".ico")
+	if _, err := os.Stat(directMatch); err == nil {
+		return directMatch
+	}
+
+	entries, err := os.ReadDir(iconDir)
+	if err == nil {
+		for _, entry := range entries {
+			name := entry.Name()
+			if strings.HasSuffix(strings.ToLower(name), ".ico") {
+				if strings.HasPrefix(name, fmt.Sprintf("%02s_", id)) || strings.HasPrefix(name, id+"_") {
+					return filepath.Join(iconDir, name)
+				}
+			}
+		}
+	}
+	return filepath.Join(iconDir, "01_yellow.ico")
+}
 
 func updateStatus(percent int, msg string, done bool, errStr string) {
 	statusMutex.Lock()
@@ -115,7 +138,25 @@ func copyDir(src, dst string) error {
 
 // ExecuteInstallation runs the full installation flow based on InstallConfig.
 func ExecuteInstallation(cfg InstallConfig, rootSourcePath string) error {
+	installRunningMutex.Lock()
+	if installInProgress {
+		installRunningMutex.Unlock()
+		return fmt.Errorf("installation already in progress")
+	}
+	installInProgress = true
+	installRunningMutex.Unlock()
+	defer func() {
+		installRunningMutex.Lock()
+		installInProgress = false
+		installRunningMutex.Unlock()
+	}()
+
 	updateStatus(5, "กำลังเตรียมโฟลเดอร์สำหรับติดตั้ง...", false, "")
+
+	// 1. Terminate any running Discord instances to prevent file locking
+	_ = exec.Command("taskkill", "/F", "/IM", "DiscordPTB.exe").Run()
+	_ = exec.Command("taskkill", "/F", "/IM", "DiscordPTB-Portable.exe").Run()
+	_ = exec.Command("taskkill", "/F", "/IM", "Discord-Portable.exe").Run()
 
 	if cfg.InstallDir == "" {
 		if cfg.InstallMode == "usb" {
@@ -136,7 +177,7 @@ func ExecuteInstallation(cfg InstallConfig, rootSourcePath string) error {
 		return err
 	}
 
-	// Copy Icons
+	// Copy Icons (all 12 colors)
 	updateStatus(25, "กำลังคัดลอกชุดไอคอนสีทั้ง 12 สี...", false, "")
 	srcIcons := filepath.Join(rootSourcePath, "res", "icons")
 	dstIcons := filepath.Join(cfg.InstallDir, "res", "icons")
@@ -163,7 +204,7 @@ func ExecuteInstallation(cfg InstallConfig, rootSourcePath string) error {
 	}
 
 	// Deploy Discord App Binaries into app/app-1.0.1231
-	updateStatus(50, "กำลังติดตั้งแพ็กเกจ Discord PTB ล่าสุด...", false, "")
+	updateStatus(45, "กำลังติดตั้งแพ็กเกจ Discord PTB ล่าสุด...", false, "")
 	dstAppDir := filepath.Join(cfg.InstallDir, "app", "app-1.0.1231")
 	srcAppDir := filepath.Join(rootSourcePath, "app", "app-1.0.1231")
 	if _, err := os.Stat(filepath.Join(srcAppDir, "DiscordPTB.exe")); err == nil {
@@ -174,6 +215,23 @@ func ExecuteInstallation(cfg InstallConfig, rootSourcePath string) error {
 		if _, err := os.Stat(filepath.Join(localAppDir, "DiscordPTB.exe")); err == nil {
 			_ = copyDir(localAppDir, dstAppDir)
 		}
+	}
+
+	// Deploy Discord Updater database and packages into app/ (CRITICAL: prevents InconsistentInstallerState)
+	updateStatus(55, "กำลังติดตั้งฐานข้อมูลและแพ็กเกจ Discord Updater...", false, "")
+	dstAppBase := filepath.Join(cfg.InstallDir, "app")
+	_ = os.MkdirAll(dstAppBase, 0755)
+
+	srcInstallerDB := filepath.Join(rootSourcePath, "app", "installer.db")
+	dstInstallerDB := filepath.Join(dstAppBase, "installer.db")
+	if _, err := os.Stat(srcInstallerDB); err == nil {
+		_ = copyFile(srcInstallerDB, dstInstallerDB)
+	}
+
+	srcPackagesDir := filepath.Join(rootSourcePath, "app", "packages")
+	dstPackagesDir := filepath.Join(dstAppBase, "packages")
+	if _, err := os.Stat(srcPackagesDir); err == nil {
+		_ = copyDir(srcPackagesDir, dstPackagesDir)
 	}
 
 	// Setup Vencord Client Mod
@@ -207,13 +265,10 @@ func ExecuteInstallation(cfg InstallConfig, rootSourcePath string) error {
 		_ = os.WriteFile(settingsPath, settingsContent, 0644)
 
 		// Create desktop shortcut
-		pct := 60 + int((float64(idx+1)/float64(len(cfg.Profiles)))*25)
+		pct := 70 + int((float64(idx+1)/float64(len(cfg.Profiles)))*20)
 		updateStatus(pct, fmt.Sprintf("กำลังสร้างทางลัดบน Desktop สำหรับ %s...", prof), false, "")
 
-		iconFile := filepath.Join(dstIcons, prof+".ico")
-		if _, err := os.Stat(iconFile); os.IsNotExist(err) {
-			iconFile = filepath.Join(dstIcons, fmt.Sprintf("profile_%02d.ico", idx+1))
-		}
+		iconFile := resolveSetupIcon(prof, dstIcons)
 
 		shortcutName := fmt.Sprintf("Discord - %s.lnk", strings.ReplaceAll(prof, "_", " "))
 		shortcutPath := filepath.Join(desktopDir, shortcutName)
