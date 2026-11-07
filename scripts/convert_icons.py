@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-Convert Discord profile PNG icons into multi-resolution Windows .ico files
-and prepare frontend asset directories and metadata.json.
+Convert Discord profile PNG icons into circular (round) icons like the official Discord app,
+exporting high-resolution multi-size Windows .ico files and web PNG assets.
 """
 
 import os
 import shutil
 import json
 from pathlib import Path
-from PIL import Image
+from PIL import Image, ImageDraw
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 SOURCE_DIR = BASE_DIR / "discord_icons"
@@ -141,6 +141,23 @@ COLOR_DEFS = [
     },
 ]
 
+def make_circular(img: Image.Image, padding: int = 4) -> Image.Image:
+    """Creates a smooth, anti-aliased circular icon with transparent background."""
+    w, h = img.size
+    scale = 4  # 4x supersampling for buttery smooth curved edges
+    big_mask = Image.new("L", (w * scale, h * scale), 0)
+    draw = ImageDraw.Draw(big_mask)
+    
+    pad = padding * scale
+    draw.ellipse((pad, pad, w * scale - pad, h * scale - pad), fill=255)
+    
+    # High-quality Lanczos downsampling
+    mask = big_mask.resize((w, h), Image.Resampling.LANCZOS)
+    
+    circular_img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    circular_img.paste(img, (0, 0), mask=mask)
+    return circular_img
+
 def main():
     print(f"Creating directories:\n  {ICO_OUT_DIR}\n  {WEB_ASSETS_DIR}")
     ICO_OUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -155,29 +172,34 @@ def main():
         if not src_png_path.exists():
             raise FileNotFoundError(f"Source icon not found: {src_png_path}")
 
-        print(f"Processing Profile {item['id']:02d}: {item['name_en']} ({item['hex']})...")
+        print(f"Processing Circular Icon {item['id']:02d}: {item['name_en']} ({item['hex']})...")
 
-        # Open and ensure RGBA
         with Image.open(src_png_path) as img:
             rgba_img = img.convert("RGBA")
+            
+            # Apply circular mask (perfect circle like Discord official app)
+            circular_img = make_circular(rgba_img, padding=4)
+
+            # Overwrite source PNG with clean circular PNG
+            circular_img.save(src_png_path, format="PNG")
 
             # Save multi-size .ico in res/icons/
             primary_ico_path = ICO_OUT_DIR / f"{item['filename_prefix']}.ico"
-            rgba_img.save(primary_ico_path, format="ICO", sizes=ICO_SIZES)
+            circular_img.save(primary_ico_path, format="ICO", sizes=ICO_SIZES)
 
-            # Also create alias profile_X.ico and profile_XX.ico for easy backend lookup
+            # Also create alias profile_X.ico and profile_XX.ico for easy lookup
             alias_ico_num = ICO_OUT_DIR / f"profile_{item['id']}.ico"
             alias_ico_code = ICO_OUT_DIR / f"profile_{item['code']}.ico"
             shutil.copy2(primary_ico_path, alias_ico_num)
             shutil.copy2(primary_ico_path, alias_ico_code)
 
-            # Copy PNG to web assets
+            # Save circular PNG to web assets
             dest_web_png = WEB_ASSETS_DIR / src_png_name
-            shutil.copy2(src_png_path, dest_web_png)
+            circular_img.save(dest_web_png, format="PNG")
 
             # Also copy alias profile_XX.png in web assets
             alias_web_png = WEB_ASSETS_DIR / f"profile_{item['code']}.png"
-            shutil.copy2(src_png_path, alias_web_png)
+            shutil.copy2(dest_web_png, alias_web_png)
 
         entry = {
             "id": item["id"],
@@ -192,12 +214,20 @@ def main():
             "png_file": src_png_name,
             "alias_ico": f"profile_{item['id']}.ico",
             "alias_png": f"profile_{item['code']}.png",
+            "shape": "circle",
         }
         metadata_list.append(entry)
 
+    # Update app default icons (Profile 1 Yellow as circular .ico)
+    primary_yellow_ico = ICO_OUT_DIR / "01_yellow_FFFF00.ico"
+    if primary_yellow_ico.exists():
+        shutil.copy2(primary_yellow_ico, BASE_DIR / "res" / "papp.ico")
+        shutil.copy2(primary_yellow_ico, BASE_DIR / "res" / "app.ico")
+
     # Save metadata.json
     output_metadata = {
-        "version": "1.0.0",
+        "version": "1.1.0",
+        "shape": "circular",
         "count": len(metadata_list),
         "profiles": metadata_list,
     }
@@ -206,13 +236,12 @@ def main():
         json.dump(output_metadata, f, indent=2, ensure_ascii=False)
     print(f"Metadata saved to: {METADATA_FILE}")
 
-    # Also save a copy of metadata.json inside cmd/websetup/web/assets/icons/ for web app consumption
     web_metadata_file = WEB_ASSETS_DIR / "metadata.json"
     with open(web_metadata_file, "w", encoding="utf-8") as f:
         json.dump(output_metadata, f, indent=2, ensure_ascii=False)
     print(f"Web metadata saved to: {web_metadata_file}")
 
-    print("\nIcon pipeline conversion completed successfully!")
+    print("\nAll 12 Discord icons have been converted into circular icons successfully!")
 
 if __name__ == "__main__":
     main()

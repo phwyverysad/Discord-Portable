@@ -570,17 +570,18 @@ body {
 }
 
 .profile-icon-wrap {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   position: relative;
   flex-shrink: 0;
+  border-radius: 50%;
 }
 
 .profile-icon-img {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  object-fit: cover;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: contain;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
