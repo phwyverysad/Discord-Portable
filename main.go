@@ -8,8 +8,10 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/portapps/discord-ptb-portable/pkg/backup"
 	"github.com/portapps/discord-ptb-portable/pkg/rpc"
@@ -35,6 +37,8 @@ type config struct {
 var (
 	app *portapps.App
 	cfg *config
+	kernel32DLL    = syscall.NewLazyDLL("kernel32.dll")
+	procFreeConsole = kernel32DLL.NewProc("FreeConsole")
 )
 
 func init() {
@@ -98,7 +102,46 @@ func resolveIcon(profileID string, rootPath string) string {
 	return filepath.Join(rootPath, "res", "papp.ico")
 }
 
+func profileDisplayName(prof string) string {
+	switch strings.ToLower(strings.TrimSpace(prof)) {
+	case "01_yellow", "yellow":
+		return "Discord Yellow"
+	case "02_yellow_orange", "yellow_orange":
+		return "Discord Yellow Orange"
+	case "03_orange", "orange":
+		return "Discord Orange"
+	case "04_red_orange", "red_orange":
+		return "Discord Red Orange"
+	case "05_red", "red":
+		return "Discord Red"
+	case "06_red_violet", "red_violet":
+		return "Discord Red Violet"
+	case "07_violet", "violet":
+		return "Discord Violet"
+	case "08_blue_violet", "blue_violet":
+		return "Discord Blue Violet"
+	case "09_blue", "blue":
+		return "Discord Blue"
+	case "10_blue_green", "blue_green":
+		return "Discord Blue Green"
+	case "11_green", "green":
+		return "Discord Green"
+	case "12_yellow_green", "yellow_green":
+		return "Discord Yellow Green"
+	default:
+		cleaned := strings.TrimLeft(prof, "0123456789_")
+		words := strings.Split(cleaned, "_")
+		for i, w := range words {
+			if len(w) > 0 {
+				words[i] = strings.ToUpper(w[:1]) + strings.ToLower(w[1:])
+			}
+		}
+		return "Discord " + strings.Join(words, " ")
+	}
+}
+
 func main() {
+	procFreeConsole.Call()
 	rawArgs := os.Args[1:]
 
 	// 1. Security Shield: Sanitize input arguments against debug/memory grabbers
@@ -231,7 +274,8 @@ func main() {
 	_ = os.Setenv("DISCORD_PORTABLE_ICON", profileIcon)
 
 	// Manage Start Menu & Desktop Shortcut with dedicated colored icon
-	shortcutName := fmt.Sprintf("Discord (%s).lnk", profileID)
+	dispName := profileDisplayName(profileID)
+	shortcutName := fmt.Sprintf("%s.lnk", dispName)
 	shortcutPath := filepath.Join(files.StartMenuPath(), shortcutName)
 	_ = os.WriteFile(shortcutPath, defaultShortcut, 0644)
 
@@ -239,7 +283,7 @@ func main() {
 		ShortcutPath:     shortcutPath,
 		TargetPath:       app.Process,
 		Arguments:        shortcut.Property{Value: fmt.Sprintf("--user-data-dir=\"%s\" --multi-instance", profileDataPath)},
-		Description:      shortcut.Property{Value: fmt.Sprintf("Discord PTB Portable - Profile %s", profileID)},
+		Description:      shortcut.Property{Value: dispName},
 		IconLocation:     shortcut.Property{Value: profileIcon},
 		WorkingDirectory: shortcut.Property{Value: app.AppPath},
 	})
@@ -255,5 +299,12 @@ func main() {
 		Str("icon", profileIcon).
 		Msg("Launching Discord PTB Portable Profile...")
 
-	app.Launch(os.Args[1:])
+	// Silent, clean launch without console window or error popups on exit
+	cmd := exec.Command(app.Process, launchArgs...)
+	cmd.Dir = electronAppPath
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		HideWindow:    true,
+		CreationFlags: 0x08000000, // CREATE_NO_WINDOW
+	}
+	_ = cmd.Run()
 }

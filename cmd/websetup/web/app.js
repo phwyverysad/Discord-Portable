@@ -1,6 +1,7 @@
 /**
  * Discord PTB Portable - Modern WebSetup Application Logic
- * Strict Constraint: ZERO EMOJIS - Pure SVG Icons & Clean UI
+ * Strict Constraint: ZERO EMOJIS - Pure SVG Icons & Clean UX Architecture
+ * Applied: 8-Point Grid, Fitts's Law, Nielsen Usability Heuristics
  */
 
 (function () {
@@ -25,6 +26,8 @@
     currentStep: 1,
     installPath: "C:\\Discord-PTB-Portable",
     vencord: true,
+    launchOnFinish: true,
+    createShortcuts: true,
     selectedProfileIds: [1], // Default: Profile 1 Yellow
     profiles: [],
     isInstalling: false,
@@ -54,6 +57,8 @@
     elements.btnDeselectAll = document.getElementById("btn-deselect-all");
 
     elements.switchVencord = document.getElementById("switch-vencord");
+    elements.switchLaunchNow = document.getElementById("switch-launch-now");
+    elements.switchDesktopShortcuts = document.getElementById("switch-desktop-shortcuts");
 
     elements.progressFill = document.getElementById("progress-fill");
     elements.progressPercent = document.getElementById("progress-percent");
@@ -121,21 +126,13 @@
           menu.classList.remove("show");
           trigger.classList.remove("open");
           trigger.setAttribute("aria-expanded", "false");
+          renderProfiles();
+          updateCounter();
         });
       });
 
-      // Close on click outside
       document.addEventListener("click", (e) => {
-        if (dropdown && !dropdown.contains(e.target)) {
-          menu.classList.remove("show");
-          trigger.classList.remove("open");
-          trigger.setAttribute("aria-expanded", "false");
-        }
-      });
-
-      // Close on Escape key
-      document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape") {
+        if (!dropdown.contains(e.target)) {
           menu.classList.remove("show");
           trigger.classList.remove("open");
           trigger.setAttribute("aria-expanded", "false");
@@ -143,53 +140,11 @@
       });
     }
 
-    const current = window.I18N.currentLang || "th";
-    updateDropdownUI(current);
-
-    window.addEventListener("languageChanged", (e) => {
-      const newLang = e.detail?.lang || window.I18N.currentLang || "th";
-      updateDropdownUI(newLang);
-      renderProfiles();
-      updateCounter();
-    });
+    updateDropdownUI(window.I18N.currentLang);
   }
 
   function initEvents() {
-    if (elements.installPathInput) {
-      elements.installPathInput.addEventListener("input", (e) => {
-        state.installPath = e.target.value.trim();
-      });
-    }
-
-    if (elements.browseFolderBtn) {
-      elements.browseFolderBtn.addEventListener("click", handleBrowseFolder);
-    }
-
-    if (elements.btnSelectAll) {
-      elements.btnSelectAll.addEventListener("click", selectAllProfiles);
-    }
-    if (elements.btnDeselectAll) {
-      elements.btnDeselectAll.addEventListener("click", deselectAllProfiles);
-    }
-
-    if (elements.switchVencord) {
-      elements.switchVencord.addEventListener("change", (e) => {
-        state.vencord = e.target.checked;
-      });
-    }
-
-    if (elements.btnBack) {
-      elements.btnBack.addEventListener("click", handleBack);
-    }
-    if (elements.btnNext) {
-      elements.btnNext.addEventListener("click", handleNext);
-    }
-
-    if (elements.btnFinish) {
-      elements.btnFinish.addEventListener("click", handleFinish);
-    }
-
-    // Custom Frameless Window Controls
+    // Window Controls
     if (elements.winBtnMinimize) {
       elements.winBtnMinimize.addEventListener("click", () => {
         fetch("/api/window/minimize", { method: "POST" }).catch(() => {});
@@ -204,83 +159,173 @@
 
     if (elements.winBtnClose) {
       elements.winBtnClose.addEventListener("click", () => {
-        fetch("/api/window/close", { method: "POST" }).catch(() => {});
-        window.close();
+        fetch("/api/window/close", { method: "POST" })
+          .then(() => window.close())
+          .catch(() => window.close());
       });
     }
 
-    // Draggable Window Header
+    // Window Dragging via Header
     if (elements.windowHeader) {
       let isDragging = false;
       let startX = 0;
       let startY = 0;
 
       elements.windowHeader.addEventListener("mousedown", (e) => {
-        if (e.target.closest("button, input, select, a, .win-btn, .lang-btn, .custom-dropdown, .dropdown-trigger, .dropdown-menu")) return;
+        if (e.target.closest("button") || e.target.closest(".custom-dropdown")) {
+          return;
+        }
         isDragging = true;
         startX = e.screenX;
         startY = e.screenY;
-
-        const onMouseMove = (moveEvent) => {
-          if (!isDragging) return;
-          const dx = moveEvent.screenX - startX;
-          const dy = moveEvent.screenY - startY;
-          if (dx !== 0 || dy !== 0) {
-            startX = moveEvent.screenX;
-            startY = moveEvent.screenY;
-            fetch(`/api/window/move?dx=${dx}&dy=${dy}`, { method: "POST" }).catch(() => {});
-          }
-        };
-
-        const onMouseUp = () => {
-          isDragging = false;
-          window.removeEventListener("mousemove", onMouseMove);
-          window.removeEventListener("mouseup", onMouseUp);
-        };
-
-        window.addEventListener("mousemove", onMouseMove);
-        window.addEventListener("mouseup", onMouseUp);
       });
+
+      window.addEventListener("mousemove", (e) => {
+        if (!isDragging) return;
+        const dx = e.screenX - startX;
+        const dy = e.screenY - startY;
+        startX = e.screenX;
+        startY = e.screenY;
+
+        if (dx !== 0 || dy !== 0) {
+          fetch(`/api/window/move?dx=${dx}&dy=${dy}`, { method: "POST" }).catch(() => {});
+        }
+      });
+
+      window.addEventListener("mouseup", () => {
+        isDragging = false;
+      });
+    }
+
+    // Navigation buttons
+    if (elements.btnBack) {
+      elements.btnBack.addEventListener("click", handleBack);
+    }
+    if (elements.btnNext) {
+      elements.btnNext.addEventListener("click", handleNext);
+    }
+
+    // Step 1: Browse Folder
+    if (elements.browseFolderBtn) {
+      elements.browseFolderBtn.addEventListener("click", handleBrowseFolder);
+    }
+    if (elements.installPathInput) {
+      elements.installPathInput.addEventListener("input", (e) => {
+        state.installPath = e.target.value.trim();
+      });
+    }
+
+    // Step 2: Toolbar buttons
+    if (elements.btnSelectAll) {
+      elements.btnSelectAll.addEventListener("click", selectAllProfiles);
+    }
+    if (elements.btnDeselectAll) {
+      elements.btnDeselectAll.addEventListener("click", deselectAllProfiles);
+    }
+
+    // Switches synchronization
+    if (elements.switchVencord) {
+      elements.switchVencord.addEventListener("change", (e) => {
+        state.vencord = e.target.checked;
+      });
+    }
+
+    if (elements.switchLaunchNow) {
+      elements.switchLaunchNow.addEventListener("change", (e) => {
+        state.launchOnFinish = e.target.checked;
+        if (elements.launchNowCheck) {
+          elements.launchNowCheck.checked = e.target.checked;
+        }
+      });
+    }
+
+    if (elements.switchDesktopShortcuts) {
+      elements.switchDesktopShortcuts.addEventListener("change", (e) => {
+        state.createShortcuts = e.target.checked;
+        if (elements.shortcutsCheck) {
+          elements.shortcutsCheck.checked = e.target.checked;
+        }
+      });
+    }
+
+    if (elements.launchNowCheck) {
+      elements.launchNowCheck.addEventListener("change", (e) => {
+        state.launchOnFinish = e.target.checked;
+        if (elements.switchLaunchNow) {
+          elements.switchLaunchNow.checked = e.target.checked;
+        }
+      });
+    }
+
+    if (elements.shortcutsCheck) {
+      elements.shortcutsCheck.addEventListener("change", (e) => {
+        state.createShortcuts = e.target.checked;
+        if (elements.switchDesktopShortcuts) {
+          elements.switchDesktopShortcuts.checked = e.target.checked;
+        }
+      });
+    }
+
+    // Step 4: Finish Button
+    if (elements.btnFinish) {
+      elements.btnFinish.addEventListener("click", handleFinish);
     }
   }
 
-  function getStaticProfilesFallback() {
-    return [
-      { id: 1, code: "01", key: "yellow", hex: "#FFFF00", png_file: "01_yellow_FFFF00.png" },
-      { id: 2, code: "02", key: "yellow_orange", hex: "#FFC000", png_file: "02_yellow_orange_FFC000.png" },
-      { id: 3, code: "03", key: "orange", hex: "#F58220", png_file: "03_orange_F58220.png" },
-      { id: 4, code: "04", key: "red_orange", hex: "#FA6304", png_file: "04_red_orange_FA6304.png" },
-      { id: 5, code: "05", key: "red", hex: "#ED1C24", png_file: "05_red_ED1C24.png" },
-      { id: 6, code: "06", key: "red_violet", hex: "#BD0074", png_file: "06_red_violet_BD0074.png" },
-      { id: 7, code: "07", key: "violet", hex: "#59277A", png_file: "07_violet_59277A.png" },
-      { id: 8, code: "08", key: "blue_violet", hex: "#4400A3", png_file: "08_blue_violet_4400A3.png" },
-      { id: 9, code: "09", key: "blue", hex: "#0020C2", png_file: "09_blue_0020C2.png" },
-      { id: 10, code: "10", key: "blue_green", hex: "#008240", png_file: "10_blue_green_008240.png" },
-      { id: 11, code: "11", key: "green", hex: "#00B050", png_file: "11_green_00B050.png" },
-      { id: 12, code: "12", key: "yellow_green", hex: "#8EF226", png_file: "12_yellow_green_8EF226.png" },
-    ];
-  }
-
   function loadProfiles() {
-    state.profiles = getStaticProfilesFallback();
     fetch("/api/profiles")
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) {
           state.profiles = data.map((item) => ({
-            id: item.number || item.id,
-            code: String(item.number || item.id).padStart(2, "0"),
-            key: item.colorKey || item.key,
-            hex: item.colorHex || item.hex,
-            png_file: (item.iconPath ? item.iconPath.split("/").pop() : null) || `profile_${String(item.number || item.id).padStart(2, "0")}.png`,
+            id: item.number,
+            code: String(item.number).padStart(2, "0"),
+            key: item.colorKey,
+            name_th: DISCORD_PROFILE_NAMES[item.number] || item.nameTH,
+            name_en: DISCORD_PROFILE_NAMES[item.number] || item.nameEN,
+            color: item.colorHex,
+            png_file: `${String(item.number).padStart(2, "0")}_${item.colorKey}_${item.colorHex.replace("#", "")}.png`,
+            ico_file: `${String(item.number).padStart(2, "0")}_${item.colorKey}.ico`,
           }));
+        } else {
+          fallbackProfiles();
         }
+        renderProfiles();
+        updateCounter();
       })
-      .catch(() => {})
-      .finally(() => {
+      .catch(() => {
+        fallbackProfiles();
         renderProfiles();
         updateCounter();
       });
+  }
+
+  function fallbackProfiles() {
+    const colorDefs = [
+      { id: 1, key: "yellow", hex: "FFFF00" },
+      { id: 2, key: "yellow_orange", hex: "FFC000" },
+      { id: 3, key: "orange", hex: "F58220" },
+      { id: 4, key: "red_orange", hex: "FA6304" },
+      { id: 5, key: "red", hex: "ED1C24" },
+      { id: 6, key: "red_violet", hex: "BD0074" },
+      { id: 7, key: "violet", hex: "59277A" },
+      { id: 8, key: "blue_violet", hex: "4400A3" },
+      { id: 9, key: "blue", hex: "0020C2" },
+      { id: 10, key: "blue_green", hex: "008240" },
+      { id: 11, key: "green", hex: "00B050" },
+      { id: 12, key: "yellow_green", hex: "8EF226" },
+    ];
+
+    state.profiles = colorDefs.map((c) => ({
+      id: c.id,
+      code: String(c.id).padStart(2, "0"),
+      key: c.key,
+      name_th: DISCORD_PROFILE_NAMES[c.id],
+      name_en: DISCORD_PROFILE_NAMES[c.id],
+      color: "#" + c.hex,
+      png_file: `${String(c.id).padStart(2, "0")}_${c.key}_${c.hex}.png`,
+      ico_file: `${String(c.id).padStart(2, "0")}_${c.key}.ico`,
+    }));
   }
 
   function renderProfiles() {
@@ -289,32 +334,36 @@
 
     state.profiles.forEach((p) => {
       const isSelected = state.selectedProfileIds.includes(p.id);
+      const discordName = DISCORD_PROFILE_NAMES[p.id];
+
       const card = document.createElement("div");
       card.className = `profile-card ${isSelected ? "selected" : ""}`;
       card.setAttribute("data-id", p.id);
-
-      const discordName = DISCORD_PROFILE_NAMES[p.id] || `Discord Profile ${p.id}`;
-
-      // Clean SVG Checkmark
-      const checkSvg = `
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <polyline points="20 6 9 17 4 12"></polyline>
-        </svg>
-      `;
+      card.setAttribute("role", "checkbox");
+      card.setAttribute("aria-checked", isSelected ? "true" : "false");
+      card.setAttribute("tabindex", "0");
 
       card.innerHTML = `
-        <div class="profile-icon-wrap">
+        <div class="profile-icon-wrap" style="background: ${p.color}18; border-color: ${p.color}44;">
           <img class="profile-icon-img" src="assets/icons/${p.png_file}" alt="${discordName}" />
         </div>
         <div class="profile-details">
           <div class="profile-name">${discordName}</div>
         </div>
         <div class="profile-check">
-          ${checkSvg}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
         </div>
       `;
 
       card.addEventListener("click", () => toggleProfileSelection(p.id));
+      card.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          toggleProfileSelection(p.id);
+        }
+      });
       elements.profilesGrid.appendChild(card);
     });
   }
@@ -322,7 +371,7 @@
   function toggleProfileSelection(id) {
     const idx = state.selectedProfileIds.indexOf(id);
     if (idx >= 0) {
-      // Keep at least 1 profile selected silently without alert popups
+      // Usability Heuristic 5 (Error Prevention): Keep at least 1 profile selected
       if (state.selectedProfileIds.length <= 1) {
         return;
       }
@@ -446,7 +495,6 @@
     state.isInstalling = true;
     goToStep(3);
 
-    // Prepare profile IDs in standard format (e.g. "01_yellow", "02_yellow_orange")
     const profileKeys = state.selectedProfileIds.map((id) => {
       const p = state.profiles.find((x) => x.id === id);
       if (p && p.key) {
@@ -460,7 +508,8 @@
       installMode: "pc",
       ecoMode: false,
       profiles: profileKeys,
-      launchOnFinish: elements.launchNowCheck ? elements.launchNowCheck.checked : true,
+      launchOnFinish: elements.switchLaunchNow ? elements.switchLaunchNow.checked : true,
+      createShortcuts: elements.switchDesktopShortcuts ? elements.switchDesktopShortcuts.checked : true,
     };
 
     fetch("/api/install", {
@@ -473,7 +522,6 @@
         startPollingProgress();
       })
       .catch(() => {
-        // Fallback simulation for preview testing
         simulateOfflineProgress();
       });
   }
@@ -556,17 +604,30 @@
   }
 
   function handleFinish() {
-    const launchNow = elements.launchNowCheck ? elements.launchNowCheck.checked : true;
+    const launchNow = elements.launchNowCheck ? elements.launchNowCheck.checked :
+      (elements.switchLaunchNow ? elements.switchLaunchNow.checked : true);
+
+    const firstProfileKey = state.selectedProfileIds.length > 0 ?
+      (() => {
+        const p = state.profiles.find((x) => x.id === state.selectedProfileIds[0]);
+        return p && p.key ? `${p.code}_${p.key}` : "01_yellow";
+      })() : "01_yellow";
+
     if (launchNow) {
-      fetch("/api/launch", { method: "POST" }).catch(() => {});
+      fetch("/api/launch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          profile: firstProfileKey,
+          installDir: state.installPath,
+        }),
+      }).catch(() => {});
     }
 
-    fetch("/api/exit", { method: "POST" })
-      .then(() => {
-        window.close();
-      })
-      .catch(() => {
-        window.close();
-      });
+    setTimeout(() => {
+      fetch("/api/exit", { method: "POST" })
+        .then(() => window.close())
+        .catch(() => window.close());
+    }, 200);
   }
 })();

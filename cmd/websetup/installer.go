@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/portapps/discord-ptb-portable/pkg/security"
@@ -16,11 +17,21 @@ import (
 )
 
 type InstallConfig struct {
-	InstallDir     string   `json:"installDir"`
-	InstallMode    string   `json:"installMode"` // "pc" or "usb"
-	EcoMode        bool     `json:"ecoMode"`
-	Profiles       []string `json:"profiles"`
-	LaunchOnFinish bool     `json:"launchOnFinish"`
+	InstallDir      string   `json:"installDir"`
+	InstallMode     string   `json:"installMode"` // "pc" or "usb"
+	EcoMode         bool     `json:"ecoMode"`
+	Profiles        []string `json:"profiles"`
+	LaunchOnFinish  bool     `json:"launchOnFinish"`
+	CreateShortcuts bool     `json:"createShortcuts"`
+}
+
+func hiddenCommand(name string, args ...string) *exec.Cmd {
+	cmd := exec.Command(name, args...)
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		HideWindow:    true,
+		CreationFlags: 0x08000000, // CREATE_NO_WINDOW
+	}
+	return cmd
 }
 
 type InstallStatus struct {
@@ -36,6 +47,44 @@ var (
 	installInProgress   bool
 	installRunningMutex sync.Mutex
 )
+
+func profileDisplayName(prof string) string {
+	switch strings.ToLower(strings.TrimSpace(prof)) {
+	case "01_yellow", "yellow":
+		return "Discord Yellow"
+	case "02_yellow_orange", "yellow_orange":
+		return "Discord Yellow Orange"
+	case "03_orange", "orange":
+		return "Discord Orange"
+	case "04_red_orange", "red_orange":
+		return "Discord Red Orange"
+	case "05_red", "red":
+		return "Discord Red"
+	case "06_red_violet", "red_violet":
+		return "Discord Red Violet"
+	case "07_violet", "violet":
+		return "Discord Violet"
+	case "08_blue_violet", "blue_violet":
+		return "Discord Blue Violet"
+	case "09_blue", "blue":
+		return "Discord Blue"
+	case "10_blue_green", "blue_green":
+		return "Discord Blue Green"
+	case "11_green", "green":
+		return "Discord Green"
+	case "12_yellow_green", "yellow_green":
+		return "Discord Yellow Green"
+	default:
+		cleaned := strings.TrimLeft(prof, "0123456789_")
+		words := strings.Split(cleaned, "_")
+		for i, w := range words {
+			if len(w) > 0 {
+				words[i] = strings.ToUpper(w[:1]) + strings.ToLower(w[1:])
+			}
+		}
+		return "Discord " + strings.Join(words, " ")
+	}
+}
 
 func resolveSetupIcon(profileID, iconDir string) string {
 	id := strings.TrimSpace(profileID)
@@ -153,10 +202,10 @@ func ExecuteInstallation(cfg InstallConfig, rootSourcePath string) error {
 
 	updateStatus(5, "กำลังเตรียมโฟลเดอร์สำหรับติดตั้ง...", false, "")
 
-	// 1. Terminate any running Discord instances to prevent file locking
-	_ = exec.Command("taskkill", "/F", "/IM", "DiscordPTB.exe").Run()
-	_ = exec.Command("taskkill", "/F", "/IM", "DiscordPTB-Portable.exe").Run()
-	_ = exec.Command("taskkill", "/F", "/IM", "Discord-Portable.exe").Run()
+	// 1. Terminate any running Discord instances to prevent file locking (hidden in background)
+	_ = hiddenCommand("taskkill", "/F", "/IM", "DiscordPTB.exe").Run()
+	_ = hiddenCommand("taskkill", "/F", "/IM", "DiscordPTB-Portable.exe").Run()
+	_ = hiddenCommand("taskkill", "/F", "/IM", "Discord-Portable.exe").Run()
 
 	if cfg.InstallDir == "" {
 		if cfg.InstallMode == "usb" {
@@ -264,28 +313,31 @@ func ExecuteInstallation(cfg InstallConfig, rootSourcePath string) error {
 		settingsContent := []byte("{\n  \"SKIP_HOST_UPDATE\": true,\n  \"USE_PINNED_UPDATE_MANIFEST\": true\n}")
 		_ = os.WriteFile(settingsPath, settingsContent, 0644)
 
-		// Create desktop shortcut
-		pct := 70 + int((float64(idx+1)/float64(len(cfg.Profiles)))*20)
-		updateStatus(pct, fmt.Sprintf("กำลังสร้างทางลัดบน Desktop สำหรับ %s...", prof), false, "")
+		// Create desktop shortcut if enabled
+		if cfg.CreateShortcuts {
+			displayName := profileDisplayName(prof)
+			pct := 70 + int((float64(idx+1)/float64(len(cfg.Profiles)))*20)
+			updateStatus(pct, fmt.Sprintf("กำลังสร้างทางลัดบน Desktop สำหรับ %s...", displayName), false, "")
 
-		iconFile := resolveSetupIcon(prof, dstIcons)
+			iconFile := resolveSetupIcon(prof, dstIcons)
 
-		shortcutName := fmt.Sprintf("Discord - %s.lnk", strings.ReplaceAll(prof, "_", " "))
-		shortcutPath := filepath.Join(desktopDir, shortcutName)
+			shortcutName := fmt.Sprintf("%s.lnk", displayName)
+			shortcutPath := filepath.Join(desktopDir, shortcutName)
 
-		args := fmt.Sprintf("--profile=%s", prof)
-		if cfg.EcoMode && idx > 0 {
-			args += " --eco"
+			args := fmt.Sprintf("--profile=%s", prof)
+			if cfg.EcoMode && idx > 0 {
+				args += " --eco"
+			}
+
+			_ = shortcut.Create(shortcut.Shortcut{
+				ShortcutPath:     shortcutPath,
+				TargetPath:       targetLauncher,
+				Arguments:        shortcut.Property{Value: args},
+				Description:      shortcut.Property{Value: displayName},
+				IconLocation:     shortcut.Property{Value: iconFile},
+				WorkingDirectory: shortcut.Property{Value: cfg.InstallDir},
+			})
 		}
-
-		_ = shortcut.Create(shortcut.Shortcut{
-			ShortcutPath:     shortcutPath,
-			TargetPath:       targetLauncher,
-			Arguments:        shortcut.Property{Value: args},
-			Description:      shortcut.Property{Value: fmt.Sprintf("Discord Portable (%s)", prof)},
-			IconLocation:     shortcut.Property{Value: iconFile},
-			WorkingDirectory: shortcut.Property{Value: cfg.InstallDir},
-		})
 	}
 
 	updateStatus(95, "กำลังตรวจสอบความสมบูรณ์ขั้นสุดท้าย...", false, "")
@@ -293,12 +345,6 @@ func ExecuteInstallation(cfg InstallConfig, rootSourcePath string) error {
 
 	updateStatus(100, "ติดตั้งเสร็จสมบูรณ์เรียบร้อยแล้ว!", true, "")
 
-	if cfg.LaunchOnFinish && len(cfg.Profiles) > 0 {
-		firstProf := cfg.Profiles[0]
-		cmd := exec.Command(targetLauncher, fmt.Sprintf("--profile=%s", firstProf))
-		cmd.Dir = cfg.InstallDir
-		_ = cmd.Start()
-	}
-
+	// Note: Auto-launching is handled gracefully by user clicking "Finish" on Step 4
 	return nil
 }

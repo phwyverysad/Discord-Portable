@@ -224,6 +224,10 @@ func (s *SetupServer) handleBrowse(w http.ResponseWriter, r *http.Request) {
 
 	psScript := `Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.FolderBrowserDialog; $f.Description = 'เลือกโฟลเดอร์สำหรับติดตั้ง Discord PTB Portable'; if ($f.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { Write-Output $f.SelectedPath }`
 	cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-Command", psScript)
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		HideWindow:    true,
+		CreationFlags: 0x08000000, // CREATE_NO_WINDOW
+	}
 	out, err := cmd.Output()
 	chosenPath := strings.TrimSpace(string(out))
 	if err != nil || chosenPath == "" {
@@ -237,6 +241,29 @@ func (s *SetupServer) handleBrowse(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *SetupServer) handleLaunch(w http.ResponseWriter, r *http.Request) {
+	type launchReq struct {
+		Profile    string `json:"profile"`
+		InstallDir string `json:"installDir"`
+	}
+	var req launchReq
+	if r.Body != nil {
+		_ = json.NewDecoder(r.Body).Decode(&req)
+	}
+	if req.Profile == "" {
+		req.Profile = "01_yellow"
+	}
+	targetLauncher := filepath.Join(req.InstallDir, "DiscordPTB-Portable.exe")
+	if _, err := os.Stat(targetLauncher); os.IsNotExist(err) {
+		targetLauncher = filepath.Join(s.rootPath, "DiscordPTB-Portable.exe")
+	}
+	cmd := exec.Command(targetLauncher, fmt.Sprintf("--profile=%s", req.Profile))
+	cmd.Dir = filepath.Dir(targetLauncher)
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		HideWindow:    true,
+		CreationFlags: 0x08000000, // CREATE_NO_WINDOW
+	}
+	_ = cmd.Start()
+
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]bool{"launched": true})
 }

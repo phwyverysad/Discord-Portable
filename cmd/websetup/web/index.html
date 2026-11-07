@@ -15,7 +15,7 @@
   <!-- Main Curved Window Container -->
   <main class="installer-window">
 
-    <!-- Header Bar -->
+    <!-- Header Bar (Layer 1) -->
     <header class="window-header">
       <div class="brand-wrapper">
         <div class="brand-logo-container" aria-hidden="true">
@@ -31,23 +31,21 @@
 
       <!-- Header Actions: Custom Language Dropdown & Frameless Window Controls -->
       <div class="header-actions">
-        <!-- Custom Language Dropdown (Modern, Non-classic Language Selector) -->
+        <!-- Custom Language Dropdown -->
         <div class="custom-dropdown" id="lang-dropdown">
           <button id="lang-dropdown-trigger" class="dropdown-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" title="เลือกภาษา / Select Language">
-            <!-- Globe SVG -->
             <svg class="dropdown-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10"></circle>
               <line x1="2" y1="12" x2="22" y2="12"></line>
               <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
             </svg>
             <span id="current-lang-text" class="dropdown-selected-label">ไทย</span>
-            <!-- Chevron Down SVG -->
             <svg class="dropdown-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="6 9 12 15 18 9"></polyline>
             </svg>
           </button>
 
-          <!-- Floating Dropdown Menu -->
+          <!-- Dropdown Menu -->
           <div id="lang-dropdown-menu" class="dropdown-menu" role="listbox" tabindex="-1">
             <div class="dropdown-item active" data-lang="th" role="option" aria-selected="true" tabindex="0">
               <div class="dropdown-item-left">
@@ -70,7 +68,7 @@
           </div>
         </div>
 
-        <!-- Custom Window Controls: Minimize, Maximize, Close -->
+        <!-- Custom Window Controls -->
         <div class="window-controls" role="group" aria-label="Window Controls">
           <button id="win-btn-minimize" class="win-btn win-btn-minimize" type="button" title="ย่อหน้าต่าง" aria-label="Minimize">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -92,14 +90,14 @@
       </div>
     </header>
 
-    <!-- Top Step Navigation -->
+    <!-- Top Stepper Navigation (Layer 1) -->
     <nav class="steps-nav" aria-label="Installer Steps">
       <div class="step-item active" data-step="1">
         <div class="step-bubble">
           <span>1</span>
           <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"></polyline></svg>
         </div>
-        <span class="step-label" data-i18n="step1Title">ตำแหน่งติดตั้ง</span>
+        <span class="step-label" data-i18n="step1Title">โฟลเดอร์ติดตั้ง</span>
       </div>
 
       <div class="step-connector"></div>
@@ -133,83 +131,133 @@
       </div>
     </nav>
 
-    <!-- Main Content Area -->
+    <!-- Main Content Area (Layer 0 Background with Layer 2 Elevated Cards) -->
     <div class="window-content">
 
       <!-- ===================================================================
            STEP 1: Folder Selection
            =================================================================== -->
       <section id="step-1" class="step-view active">
-        <div class="section-header">
-          <h2 class="section-title" data-i18n="installPathLabel">โฟลเดอร์สำหรับติดตั้ง</h2>
-          <p class="section-subtitle" data-i18n="installPathDesc">ระบุตำแหน่งที่ต้องการติดตั้ง Discord PTB Portable บนเครื่องของคุณ</p>
-        </div>
+        <div class="card-layer">
+          <div class="card-header">
+            <div class="card-icon-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+              </svg>
+            </div>
+            <div>
+              <h2 class="card-title" data-i18n="installPathLabel">โฟลเดอร์สำหรับติดตั้ง</h2>
+              <p class="card-subtitle" data-i18n="installPathDesc">ระบุตำแหน่งที่ต้องการติดตั้ง Discord PTB Portable บนเครื่องของคุณ</p>
+            </div>
+          </div>
 
-        <!-- Target Path Selector -->
-        <div class="path-selector-box" style="margin-top: 24px;">
           <div class="path-input-group">
             <input type="text" id="install-path-input" class="path-input" value="C:\Discord-PTB-Portable" />
-            <button type="button" id="browse-folder-btn" class="btn btn-secondary btn-sm">
-              <!-- Folder SVG -->
+            <button type="button" id="browse-folder-btn" class="btn btn-secondary">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
               </svg>
               <span data-i18n="browseFolderBtn">เลือกโฟลเดอร์</span>
             </button>
           </div>
+
+          <div class="card-callout">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
+            <span>ระบบแยกข้อมูลโปรไฟล์ โทเค็น และแคชไว้ในโฟลเดอร์นี้อย่างสมบูรณ์แบบ ไม่ปะปนกับ Discord หลักของวินโดว์</span>
+          </div>
         </div>
       </section>
 
       <!-- ===================================================================
-           STEP 2: Profiles & Vencord Option
+           STEP 2: Profiles & Settings Options
            =================================================================== -->
       <section id="step-2" class="step-view">
-        <div class="section-header">
-          <h2 class="section-title" data-i18n="profileSectionTitle">เลือกโปรไฟล์สี Discord (1-12 บัญชี)</h2>
-          <p class="section-subtitle" data-i18n="profileSectionDesc">คลิกเลือกสีประจำตัวสำหรับแต่ละบัญชี ระบบจะสร้างไอคอนสีและแยกพื้นที่จัดเก็บข้อมูลให้โดยอัตโนมัติ</p>
-        </div>
-
-        <!-- Profiles Toolbar -->
-        <div class="profile-toolbar">
-          <div id="profile-counter" class="profile-counter">1 โปรไฟล์ถูกเลือก</div>
-          <div class="profile-actions">
-            <button type="button" id="btn-select-all" class="btn-pill">
-              <!-- Select All SVG -->
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="9 11 12 14 22 4"></polyline>
-                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
-              </svg>
-              <span data-i18n="selectAllBtn">เลือกทั้งหมด</span>
-            </button>
-            <button type="button" id="btn-deselect-all" class="btn-pill">
-              <!-- Clear SVG -->
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-              <span data-i18n="deselectAllBtn">ล้างการเลือก</span>
-            </button>
+        <!-- Elevated Profiles Card -->
+        <div class="card-layer" style="padding: 16px;">
+          <div class="section-header-compact">
+            <div>
+              <h2 class="section-title" data-i18n="profileSectionTitle">เลือกโปรไฟล์สี Discord (1-12 บัญชี)</h2>
+              <p class="section-subtitle" data-i18n="profileSectionDesc">คลิกเลือกสีประจำตัวสำหรับแต่ละบัญชี ระบบจะสร้างไอคอนสีและแยกพื้นที่จัดเก็บข้อมูลให้โดยอัตโนมัติ</p>
+            </div>
+            <div class="profile-toolbar">
+              <div id="profile-counter" class="profile-counter">1 โปรไฟล์ถูกเลือก</div>
+              <div class="profile-actions">
+                <button type="button" id="btn-select-all" class="btn-pill">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="9 11 12 14 22 4"></polyline>
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                  </svg>
+                  <span data-i18n="selectAllBtn">เลือกทั้งหมด</span>
+                </button>
+                <button type="button" id="btn-deselect-all" class="btn-pill">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                  <span data-i18n="deselectAllBtn">ล้างการเลือก</span>
+                </button>
+              </div>
+            </div>
           </div>
+
+          <!-- 12 Color Profiles Grid (NO NUMBERS - pure colors e.g. Discord Yellow) -->
+          <div id="profiles-grid" class="profiles-grid"></div>
         </div>
 
-        <!-- 12 Color Profiles Grid (Dynamically Rendered by JS) -->
-        <div id="profiles-grid" class="profiles-grid"></div>
-
-        <!-- Vencord Client Mod Switch Box with Clear Rounded Card Frame -->
-        <div class="vencord-box">
+        <!-- Elevated Options Card (Vencord, Launch Now, Desktop Shortcuts) -->
+        <div class="card-layer" style="margin-top: 12px; padding: 14px 18px;">
           <div class="custom-switch-item">
             <div class="switch-info">
-              <div class="switch-title" style="display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--text-primary);">
-                <!-- Puzzle / Plug SVG -->
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary-accent)" stroke-width="2">
+              <div class="switch-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2">
                   <path d="M19.5 12.5a2.5 2.5 0 0 0-2.5-2.5H16V6a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v4H6a2.5 2.5 0 0 0 0 5h2v4a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-4h1a2.5 2.5 0 0 0 2.5-2.5z"></path>
                 </svg>
                 <span data-i18n="vencordTitle">ติดตั้ง Vencord Client Mod</span>
               </div>
-              <div class="switch-desc" style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;" data-i18n="vencordDesc">ติดตั้งปลั๊กอินและธีมตกแต่ง ปรับแต่งการใช้งาน Discord ได้อย่างอิสระ</div>
+              <div class="switch-desc" data-i18n="vencordDesc">ติดตั้งปลั๊กอินและธีมตกแต่ง ปรับแต่งการใช้งาน Discord ได้อย่างอิสระ</div>
             </div>
             <label class="toggle-switch">
               <input type="checkbox" id="switch-vencord" checked />
+              <span class="slider-round"></span>
+            </label>
+          </div>
+
+          <div class="switch-divider"></div>
+
+          <div class="custom-switch-item">
+            <div class="switch-info">
+              <div class="switch-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2">
+                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+                <span data-i18n="launchNowLabel">เปิด Discord PTB ทันทีหลังติดตั้งเสร็จ</span>
+              </div>
+              <div class="switch-desc" data-i18n="launchNowDesc">เปิดโปรแกรมโปรไฟล์แรกทันทีเมื่อกดเสร็จสิ้น</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="switch-launch-now" checked />
+              <span class="slider-round"></span>
+            </label>
+          </div>
+
+          <div class="switch-divider"></div>
+
+          <div class="custom-switch-item">
+            <div class="switch-info">
+              <div class="switch-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2">
+                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                  <line x1="8" y1="21" x2="16" y2="21"></line>
+                  <line x1="12" y1="17" x2="12" y2="21"></line>
+                </svg>
+                <span data-i18n="createDesktopShortcutsLabel">สร้างไอคอนทางลัดไว้หน้าเดสก์ท็อป</span>
+              </div>
+              <div class="switch-desc" data-i18n="createDesktopShortcutsDesc">สร้างทางลัดพร้อมไอคอนสีของแต่ละบัญชีบนหน้าจอ Desktop</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="switch-desktop-shortcuts" checked />
               <span class="slider-round"></span>
             </label>
           </div>
@@ -220,13 +268,13 @@
            STEP 3: Installation Progress View
            =================================================================== -->
       <section id="step-3" class="step-view">
-        <div class="progress-center">
-          <div class="section-header">
+        <div class="card-layer" style="padding: 24px;">
+          <div class="section-header-center">
             <h2 class="section-title" data-i18n="installingTitle">กำลังดำเนินการติดตั้ง</h2>
             <p class="section-subtitle" data-i18n="installingDesc">ระบบกำลังเตรียมไฟล์ Discord PTB, Vencord และพื้นที่โปรไฟล์อย่างปลอดภัย...</p>
           </div>
 
-          <!-- Rounded Bright Blue Progress Bar -->
+          <!-- Rounded Progress Bar Track -->
           <div class="progress-bar-container">
             <div class="progress-header-info">
               <span id="progress-status" class="progress-status-label" data-i18n="statusPreparing">กำลังเตรียมระบบ...</span>
@@ -241,7 +289,6 @@
           <div class="stages-checklist">
             <div class="stage-item in-progress" data-stage="1">
               <div class="stage-icon">
-                <!-- Checkmark SVG -->
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
                   <polyline points="20 6 9 17 4 12"></polyline>
                 </svg>
@@ -283,19 +330,19 @@
            STEP 4: Finished View
            =================================================================== -->
       <section id="step-4" class="step-view">
-        <div class="finish-center">
-          <!-- Hero Checkmark SVG -->
+        <div class="card-layer" style="padding: 28px 24px; text-align: center;">
+          <!-- Hero Success Badge -->
           <div class="success-hero-circle">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <polyline points="20 6 9 17 4 12"></polyline>
             </svg>
           </div>
 
-          <h2 class="section-title" data-i18n="finishTitle">ติดตั้งเสร็จสิ้นเรียบร้อยแล้ว</h2>
+          <h2 class="section-title" data-i18n="finishTitle" style="margin-top: 12px;">ติดตั้งเสร็จสิ้นเรียบร้อยแล้ว</h2>
           <p class="section-subtitle" data-i18n="finishDesc">Discord PTB Portable พร้อมใช้งานสำหรับบัญชีที่คุณเลือกแล้ว</p>
 
-          <!-- Post-Install Custom Checkboxes -->
-          <div class="post-install-options" style="margin: 24px 0 28px 0;">
+          <!-- Post-Install Checklist Options -->
+          <div class="post-install-options" style="margin: 20px auto 24px auto; max-width: 360px;">
             <label class="custom-checkbox">
               <input type="checkbox" id="launch-now-check" checked />
               <div class="checkbox-box">
@@ -309,18 +356,17 @@
               <div class="checkbox-box">
                 <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"></polyline></svg>
               </div>
-              <span data-i18n="createDesktopShortcutsLabel">สร้างไอคอนทางลัดบนหน้าจอเดสก์ท็อป</span>
+              <span data-i18n="createDesktopShortcutsLabel">สร้างไอคอนทางลัดไว้หน้าเดสก์ท็อป</span>
             </label>
           </div>
 
-          <!-- Finish Action Buttons -->
+          <!-- Finish CTA Button: Pure "เสร็จสิ้น" with Checkmark SVG -->
           <div style="display: flex; justify-content: center;">
-            <button type="button" id="btn-finish" class="btn btn-primary" style="min-width: 220px;">
-              <!-- Rocket / Play SVG -->
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            <button type="button" id="btn-finish" class="btn btn-primary" style="min-width: 200px; height: 44px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width: 18px; height: 18px;">
+                <polyline points="20 6 9 17 4 12"></polyline>
               </svg>
-              <span data-i18n="finishBtn">เสร็จสิ้นและเปิดโปรแกรม</span>
+              <span data-i18n="finishBtn">เสร็จสิ้น</span>
             </button>
           </div>
         </div>
@@ -328,11 +374,10 @@
 
     </div>
 
-    <!-- Persistent Footer Action Bar -->
+    <!-- Persistent Footer Action Bar (Layer 1) -->
     <footer class="window-footer">
       <div class="footer-left">
         <button type="button" id="btn-back" class="btn btn-secondary" style="display: none;">
-          <!-- Arrow Left SVG -->
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="19" y1="12" x2="5" y2="12"></line>
             <polyline points="12 19 5 12 12 5"></polyline>
@@ -344,7 +389,6 @@
       <div class="footer-right">
         <button type="button" id="btn-next" class="btn btn-primary">
           <span data-i18n="nextBtn">ถัดไป</span>
-          <!-- Arrow Right SVG -->
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="5" y1="12" x2="19" y2="12"></line>
             <polyline points="12 5 19 12 12 19"></polyline>

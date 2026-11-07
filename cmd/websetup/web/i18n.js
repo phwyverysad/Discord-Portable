@@ -1,6 +1,7 @@
 /**
  * i18n Translation Dictionary for Discord PTB Portable + Vencord WebSetup
- * Note: ZERO EMOJIS - Strictly clean professional text only.
+ * Strict Constraint: ZERO EMOJIS - Strictly clean professional text only.
+ * Principles: 10 Usability Heuristics & Cognitive Clarity
  */
 
 const translations = {
@@ -33,6 +34,10 @@ const translations = {
     selectedCount: "เลือกแล้ว {count} โปรไฟล์",
     vencordTitle: "ติดตั้ง Vencord Client Mod",
     vencordDesc: "ติดตั้งปลั๊กอินและธีมตกแต่ง ปรับแต่งการใช้งาน Discord ได้อย่างอิสระ",
+    launchNowLabel: "เปิด Discord PTB ทันทีหลังติดตั้งเสร็จ",
+    launchNowDesc: "เปิดโปรแกรมโปรไฟล์แรกทันทีเมื่อกดเสร็จสิ้น",
+    createDesktopShortcutsLabel: "สร้างไอคอนทางลัดไว้หน้าเดสก์ท็อป",
+    createDesktopShortcutsDesc: "สร้างทางลัดพร้อมไอคอนสีของแต่ละบัญชีบนหน้าจอ Desktop",
     backBtn: "ย้อนกลับ",
     startInstallBtn: "เริ่มการติดตั้ง",
 
@@ -53,9 +58,7 @@ const translations = {
     // Step 4: Finished
     finishTitle: "ติดตั้งเสร็จสิ้นเรียบร้อยแล้ว",
     finishDesc: "Discord PTB Portable พร้อมใช้งานสำหรับบัญชีทั้งหมดที่คุณเลือกแล้ว",
-    launchNowLabel: "เปิด Discord PTB ทันทีหลังปิดตัวติดตั้ง",
-    createDesktopShortcutsLabel: "สร้างไอคอนทางลัดบนหน้าจอเดสก์ท็อป",
-    finishBtn: "เสร็จสิ้นและเปิดโปรแกรม",
+    finishBtn: "เสร็จสิ้น",
 
     // Alerts
     alertSelectAtLeastOne: "กรุณาเลือกโปรไฟล์อย่างน้อย 1 สีเพื่อดำเนินการต่อ",
@@ -91,6 +94,10 @@ const translations = {
     selectedCount: "{count} profile(s) selected",
     vencordTitle: "Install Vencord Client Mod",
     vencordDesc: "Install client plugins and custom themes to personalize your Discord experience.",
+    launchNowLabel: "Launch Discord PTB immediately after install",
+    launchNowDesc: "Open primary profile window when clicking Finish",
+    createDesktopShortcutsLabel: "Create desktop shortcuts with colored icons",
+    createDesktopShortcutsDesc: "Place colored shortcuts on desktop for each profile",
     backBtn: "Back",
     startInstallBtn: "Install Now",
 
@@ -111,9 +118,7 @@ const translations = {
     // Step 4: Finished
     finishTitle: "Installation Completed Successfully",
     finishDesc: "Discord PTB Portable is ready to use for all selected accounts.",
-    launchNowLabel: "Launch Discord PTB now",
-    createDesktopShortcutsLabel: "Create desktop shortcuts with colored icons",
-    finishBtn: "Finish and Launch",
+    finishBtn: "Finish",
 
     // Alerts
     alertSelectAtLeastOne: "Please select at least 1 color profile to proceed.",
@@ -123,67 +128,48 @@ const translations = {
 
 class I18nManager {
   constructor() {
-    this.currentLang = "th";
+    this.currentLang = localStorage.getItem("app_lang") || "th";
   }
 
   init() {
-    this.applyLanguage();
+    this.applyLanguage(this.currentLang);
   }
 
   setLanguage(lang) {
-    if (!translations[lang]) return;
-    this.currentLang = lang;
-    this.applyLanguage();
-
-    const curLabel = document.getElementById("current-lang-text");
-    if (curLabel) {
-      curLabel.textContent = lang === "en" ? "English" : "ไทย";
+    if (translations[lang]) {
+      this.currentLang = lang;
+      localStorage.setItem("app_lang", lang);
+      this.applyLanguage(lang);
+      document.documentElement.lang = lang;
     }
-    const dropdownItems = document.querySelectorAll("#lang-dropdown-menu .dropdown-item");
-    dropdownItems.forEach((item) => {
-      const itemLang = item.getAttribute("data-lang");
-      const isActive = itemLang === lang;
-      item.classList.toggle("active", isActive);
-      item.setAttribute("aria-selected", isActive ? "true" : "false");
-    });
-
-    const btnTh = document.getElementById("lang-btn-th");
-    const btnEn = document.getElementById("lang-btn-en");
-    if (btnTh && btnEn) {
-      if (lang === "th") {
-        btnTh.classList.add("active");
-        btnEn.classList.remove("active");
-      } else {
-        btnEn.classList.add("active");
-        btnTh.classList.remove("active");
-      }
-    }
-
-    window.dispatchEvent(new CustomEvent("languageChanged", { detail: { lang } }));
   }
 
-  t(key, replacements = {}) {
-    const dict = translations[this.currentLang] || translations.th;
-    let text = dict[key] || translations.th[key] || key;
-
-    Object.keys(replacements).forEach((k) => {
-      text = text.replace(new RegExp(`\\{${k}\\}`, "g"), replacements[k]);
-    });
-
-    return text;
+  t(key, params = {}) {
+    let str = translations[this.currentLang]?.[key] || translations["th"]?.[key] || key;
+    for (const [param, val] of Object.entries(params)) {
+      str = str.replace(`{${param}}`, val);
+    }
+    return str;
   }
 
-  applyLanguage() {
-    document.documentElement.lang = this.currentLang;
-    const elements = document.querySelectorAll("[data-i18n]");
-
-    elements.forEach((el) => {
+  applyLanguage(lang) {
+    document.querySelectorAll("[data-i18n]").forEach((el) => {
       const key = el.getAttribute("data-i18n");
       const translation = this.t(key);
-      if (el.tagName === "INPUT" && el.getAttribute("placeholder")) {
-        el.setAttribute("placeholder", translation);
-      } else {
-        el.textContent = translation;
+      if (translation) {
+        if (el.tagName === "INPUT" && el.type === "button") {
+          el.value = translation;
+        } else {
+          el.textContent = translation;
+        }
+      }
+    });
+
+    document.querySelectorAll("[data-i18n-title]").forEach((el) => {
+      const key = el.getAttribute("data-i18n-title");
+      const translation = this.t(key);
+      if (translation) {
+        el.title = translation;
       }
     });
   }
