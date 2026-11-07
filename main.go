@@ -300,12 +300,8 @@ func main() {
 		Str("icon", profileIcon).
 		Msg("Launching Discord PTB Portable Profile...")
 
-	// Silent, clean launch without console window or error popups on exit
+	// Clean launch Discord PTB GUI
 	cmd := exec.Command(app.Process, launchArgs...)
 	cmd.Dir = electronAppPath
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		HideWindow:    true,
-		CreationFlags: 0x08000000, // CREATE_NO_WINDOW
-	}
 	_ = cmd.Run()
 }
