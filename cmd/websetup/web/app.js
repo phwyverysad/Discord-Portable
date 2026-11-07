@@ -264,8 +264,8 @@
   function toggleProfileSelection(id) {
     const idx = state.selectedProfileIds.indexOf(id);
     if (idx >= 0) {
-      if (state.selectedProfileIds.length === 1) {
-        alert(window.I18N.t("alertSelectAtLeastOne"));
+      // Keep at least 1 profile selected silently without alert popups
+      if (state.selectedProfileIds.length <= 1) {
         return;
       }
       state.selectedProfileIds.splice(idx, 1);
@@ -376,8 +376,9 @@
       goToStep(2);
     } else if (state.currentStep === 2) {
       if (state.selectedProfileIds.length === 0) {
-        alert(window.I18N.t("alertSelectAtLeastOne"));
-        return;
+        state.selectedProfileIds = [1];
+        renderProfiles();
+        updateCounter();
       }
       startInstallation();
     }

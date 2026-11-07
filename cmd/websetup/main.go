@@ -9,36 +9,82 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/jchv/go-webview2"
+	"github.com/jchv/go-webview2/pkg/edge"
 	"github.com/portapps/portapps/v3/pkg/log"
+	"golang.org/x/sys/windows"
 )
 
 var (
-	kernel32Main              = syscall.NewLazyDLL("kernel32.dll")
-	user32Main                = syscall.NewLazyDLL("user32.dll")
-	gdi32Main                 = syscall.NewLazyDLL("gdi32.dll")
-	dwmapiMain                = syscall.NewLazyDLL("dwmapi.dll")
-	procFreeConsole           = kernel32Main.NewProc("FreeConsole")
-	procGetWindowLongW        = user32Main.NewProc("GetWindowLongW")
-	procSetWindowLongW        = user32Main.NewProc("SetWindowLongW")
-	procSetWindowPos          = user32Main.NewProc("SetWindowPos")
-	procSetWindowRgn          = user32Main.NewProc("SetWindowRgn")
-	procCreateRoundRectRgn    = gdi32Main.NewProc("CreateRoundRectRgn")
-	procDwmSetWindowAttribute = dwmapiMain.NewProc("DwmSetWindowAttribute")
-	procShowWindow            = user32Main.NewProc("ShowWindow")
+	kernel32Main         = syscall.NewLazyDLL("kernel32.dll")
+	user32Main           = syscall.NewLazyDLL("user32.dll")
+	procFreeConsole      = kernel32Main.NewProc("FreeConsole")
+	procRegisterClassExW = user32Main.NewProc("RegisterClassExW")
+	procCreateWindowExW  = user32Main.NewProc("CreateWindowExW")
+	procDefWindowProcW   = user32Main.NewProc("DefWindowProcW")
+	procUpdateWindowWin  = user32Main.NewProc("UpdateWindow")
+	procGetMessageW      = user32Main.NewProc("GetMessageW")
+	procTranslateMessage = user32Main.NewProc("TranslateMessage")
+	procDispatchMessageW = user32Main.NewProc("DispatchMessageW")
+	procPostQuitMessage  = user32Main.NewProc("PostQuitMessage")
+	procGetSystemMetrics = user32Main.NewProc("GetSystemMetrics")
 )
 
+type WNDCLASSEXW struct {
+	CbSize        uint32
+	Style         uint32
+	LpfnWndProc   uintptr
+	CbClsExtra    int32
+	CbWndExtra    int32
+	HInstance     windows.Handle
+	HIcon         windows.Handle
+	HCursor       windows.Handle
+	HbrBackground windows.Handle
+	LpszMenuName  *uint16
+	LpszClassName *uint16
+	HIconSm       windows.Handle
+}
+
+type MSG struct {
+	Hwnd     uintptr
+	Message  uint32
+	WParam   uintptr
+	LParam   uintptr
+	Time     uint32
+	Pt       struct{ X, Y int32 }
+	LPrivate uint32
+}
+
 const (
-	GWL_STYLE                = ^uintptr(15) // -16
-	WS_POPUP                 = 0x80000000
-	WS_VISIBLE               = 0x10000000
-	WS_CLIPCHILDREN          = 0x02000000
-	SWP_NOMOVE               = 0x0002
-	SWP_NOZORDER             = 0x0004
-	SWP_FRAMECHANGED         = 0x0020
-	DWMWA_WINDOW_CORNER_PREF = 33
-	DWMWCP_ROUND             = 2
+	WS_POPUP        = 0x80000000
+	WS_CLIPCHILDREN = 0x02000000
+	WS_EX_APPWINDOW = 0x00040000
+	CS_DROPSHADOW   = 0x00020000
+	WM_DESTROY      = 0x0002
+	WM_SIZE         = 0x0005
+	WM_CLOSE        = 0x0010
+	SW_SHOW         = 5
+	SM_CXSCREEN     = 0
+	SM_CYSCREEN     = 1
 )
+
+var globalChromium *edge.Chromium
+
+func framelessWndProc(hwnd uintptr, msg uint32, wp, lp uintptr) uintptr {
+	switch msg {
+	case WM_SIZE:
+		if globalChromium != nil {
+			globalChromium.Resize()
+		}
+	case WM_CLOSE:
+		procPostQuitMessage.Call(0)
+		return 0
+	case WM_DESTROY:
+		procPostQuitMessage.Call(0)
+		return 0
+	}
+	r, _, _ := procDefWindowProcW.Call(hwnd, uintptr(msg), wp, lp)
+	return r
+}
 
 func findBrowser() string {
 	candidates := []string{
@@ -59,7 +105,7 @@ func findBrowser() string {
 }
 
 func main() {
-	// Detach and hide any attached console window
+	// 1. Immediately detach from console if any attached
 	procFreeConsole.Call()
 
 	exePath, err := os.Executable()
@@ -84,53 +130,92 @@ func main() {
 	targetURL := server.URL()
 	log.Info().Str("url", targetURL).Msg("WebSetup Server listening")
 
-	// Native frameless WebView2 window
-	userDataFolder := filepath.Join(os.Getenv("TEMP"), "discord_websetup_webview2")
-	_ = os.MkdirAll(userDataFolder, 0700)
-	defer os.RemoveAll(userDataFolder)
+	// 2. Register native frameless window class
+	var hinst windows.Handle
+	windows.GetModuleHandleEx(0, nil, &hinst)
 
-	w := webview2.NewWithOptions(webview2.WebViewOptions{
-		Debug:     false,
-		AutoFocus: true,
-		DataPath:  userDataFolder,
-		WindowOptions: webview2.WindowOptions{
-			Title:  "Discord PTB Portable - WebSetup",
-			Width:  860,
-			Height: 640,
-			Center: true,
-		},
-	})
+	className, _ := windows.UTF16PtrFromString("DiscordFramelessWebSetup")
+	wc := WNDCLASSEXW{
+		CbSize:        uint32(unsafe.Sizeof(WNDCLASSEXW{})),
+		Style:         CS_DROPSHADOW,
+		LpfnWndProc:   windows.NewCallback(framelessWndProc),
+		HInstance:     hinst,
+		LpszClassName: className,
+	}
+	procRegisterClassExW.Call(uintptr(unsafe.Pointer(&wc)))
 
-	if w != nil {
-		hwnd := uintptr(w.Window())
+	// 3. Compact window dimensions: 760 x 540 (centered)
+	width := int32(760)
+	height := int32(540)
+	scrW, _, _ := procGetSystemMetrics.Call(SM_CXSCREEN)
+	scrH, _, _ := procGetSystemMetrics.Call(SM_CYSCREEN)
+	x := (int32(scrW) - width) / 2
+	y := (int32(scrH) - height) / 2
+
+	// 4. Create window as WS_POPUP with WS_EX_APPWINDOW (born frameless, never flashes standard title bar)
+	hwnd, _, _ := procCreateWindowExW.Call(
+		WS_EX_APPWINDOW,
+		uintptr(unsafe.Pointer(className)),
+		uintptr(unsafe.Pointer(className)),
+		WS_POPUP|WS_CLIPCHILDREN,
+		uintptr(x),
+		uintptr(y),
+		uintptr(width),
+		uintptr(height),
+		0, 0,
+		uintptr(hinst),
+		0,
+	)
+
+	if hwnd != 0 {
 		server.SetWindowHwnd(hwnd)
 
-		// Set 100% frameless popup style (No OS title bar, no OS borders)
-		procSetWindowLongW.Call(hwnd, GWL_STYLE, WS_POPUP|WS_VISIBLE|WS_CLIPCHILDREN)
-		procSetWindowPos.Call(hwnd, 0, 0, 0, 860, 640, SWP_NOMOVE|SWP_NOZORDER|SWP_FRAMECHANGED)
+		userDataFolder := filepath.Join(os.Getenv("TEMP"), "discord_websetup_webview2")
+		_ = os.MkdirAll(userDataFolder, 0700)
+		defer os.RemoveAll(userDataFolder)
 
-		// Enable Windows 11 rounded corners
-		pref := uint32(DWMWCP_ROUND)
-		procDwmSetWindowAttribute.Call(hwnd, DWMWA_WINDOW_CORNER_PREF, uintptr(unsafe.Pointer(&pref)), 4)
+		chromium := edge.NewChromium()
+		chromium.DataPath = userDataFolder
+		globalChromium = chromium
 
-		// Apply exact rounded clipping
-		rgn, _, _ := procCreateRoundRectRgn.Call(0, 0, 860, 640, 24, 24)
-		if rgn != 0 {
-			procSetWindowRgn.Call(hwnd, rgn, 1)
+		if chromium.Embed(hwnd) {
+			settings, _ := chromium.GetSettings()
+			if settings != nil {
+				_ = settings.PutAreDefaultContextMenusEnabled(false)
+				_ = settings.PutAreDevToolsEnabled(false)
+			}
+
+			chromium.Navigate(targetURL)
+			chromium.Resize()
+
+			// Show frameless window only when fully initialized
+			procShowWindowWin.Call(hwnd, SW_SHOW)
+			procUpdateWindowWin.Call(hwnd)
+
+			var msg MSG
+			for {
+				r, _, _ := procGetMessageW.Call(uintptr(unsafe.Pointer(&msg)), 0, 0, 0)
+				if r == 0 || int32(r) == -1 {
+					break
+				}
+				procTranslateMessage.Call(uintptr(unsafe.Pointer(&msg)))
+				procDispatchMessageW.Call(uintptr(unsafe.Pointer(&msg)))
+			}
+			return
 		}
-
-		w.Navigate(targetURL)
-		w.Run()
-		return
 	}
 
-	// Fallback to browser if WebView2 is missing
+	// Fallback to browser if WebView2 runtime is completely missing
 	browserExe := findBrowser()
 	if browserExe != "" {
+		tempBrowserData := filepath.Join(os.Getenv("TEMP"), "discord_websetup_cache")
+		_ = os.MkdirAll(tempBrowserData, 0700)
+		defer os.RemoveAll(tempBrowserData)
+
 		appArgs := []string{
 			fmt.Sprintf("--app=%s", targetURL),
-			"--window-size=860,640",
-			fmt.Sprintf("--user-data-dir=%s", userDataFolder),
+			"--window-size=760,540",
+			fmt.Sprintf("--user-data-dir=%s", tempBrowserData),
 			"--no-first-run",
 			"--no-default-browser-check",
 			"--disable-extensions",

@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Discord PTB Portable - WebSetup</title>
   <link rel="stylesheet" href="style.css" />
+  <script>
+    // Suppress native browser alerts - silent validation only
+    window.alert = function(msg) { console.warn("[Alert Suppressed]:", msg); };
+  </script>
 </head>
 <body>
 
@@ -167,9 +171,9 @@
         <!-- 12 Color Profiles Grid (Dynamically Rendered by JS) -->
         <div id="profiles-grid" class="profiles-grid"></div>
 
-        <!-- Vencord Client Mod Switch Box -->
-        <div class="vencord-box" style="margin-top: 18px; padding: 14px 18px; background: rgba(255, 255, 255, 0.7); border: 1.5px solid var(--accent-blue-border); border-radius: 14px;">
-          <div class="custom-switch-item" style="border: none; padding: 0;">
+        <!-- Vencord Client Mod Switch Box with Clear Rounded Card Frame -->
+        <div class="vencord-box">
+          <div class="custom-switch-item">
             <div class="switch-info">
               <div class="switch-title" style="display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--text-primary);">
                 <!-- Puzzle / Plug SVG -->
