@@ -200,7 +200,7 @@ func ExecuteInstallation(cfg InstallConfig, rootSourcePath string) error {
 		installRunningMutex.Unlock()
 	}()
 
-	updateStatus(5, "กำลังเตรียมโฟลเดอร์สำหรับติดตั้ง...", false, "")
+	updateStatus(5, "กำลังเตรียมโฟลเดอร์ติดตั้ง...", false, "")
 
 	// 1. Terminate any running Discord instances to prevent file locking (hidden in background)
 	_ = hiddenCommand("taskkill", "/F", "/IM", "DiscordPTB.exe").Run()
@@ -220,14 +220,14 @@ func ExecuteInstallation(cfg InstallConfig, rootSourcePath string) error {
 		return err
 	}
 
-	updateStatus(15, "กำลังตั้งค่าระบบความปลอดภัย Token & Credential Shield...", false, "")
+	updateStatus(15, "กำลังตั้งค่าความปลอดภัย...", false, "")
 	profilesDir := filepath.Join(cfg.InstallDir, "data", "profiles")
 	if err := os.MkdirAll(profilesDir, 0700); err != nil {
 		return err
 	}
 
 	// Copy Icons (all 12 colors)
-	updateStatus(25, "กำลังคัดลอกชุดไอคอนสีทั้ง 12 สี...", false, "")
+	updateStatus(25, "กำลังคัดลอกชุดไอคอน...", false, "")
 	srcIcons := filepath.Join(rootSourcePath, "res", "icons")
 	dstIcons := filepath.Join(cfg.InstallDir, "res", "icons")
 	if _, err := os.Stat(srcIcons); err == nil {
@@ -235,7 +235,7 @@ func ExecuteInstallation(cfg InstallConfig, rootSourcePath string) error {
 	}
 
 	// Setup Launcher Binary in target
-	updateStatus(35, "กำลังติดตั้งตัวรัน Discord Portable...", false, "")
+	updateStatus(35, "กำลังติดตั้งตัวเปิดโปรแกรม...", false, "")
 	srcLauncher := filepath.Join(rootSourcePath, "DiscordPTB-Portable.exe")
 	if _, err := os.Stat(srcLauncher); os.IsNotExist(err) {
 		srcLauncher = filepath.Join(rootSourcePath, "Discord-Portable.exe")
@@ -253,7 +253,7 @@ func ExecuteInstallation(cfg InstallConfig, rootSourcePath string) error {
 	}
 
 	// Deploy Discord App Binaries into app/app-1.0.1231
-	updateStatus(45, "กำลังติดตั้งแพ็กเกจ Discord PTB ล่าสุด...", false, "")
+	updateStatus(45, "กำลังติดตั้ง Discord PTB...", false, "")
 	dstAppDir := filepath.Join(cfg.InstallDir, "app", "app-1.0.1231")
 	srcAppDir := filepath.Join(rootSourcePath, "app", "app-1.0.1231")
 	if _, err := os.Stat(filepath.Join(srcAppDir, "DiscordPTB.exe")); err == nil {
@@ -267,7 +267,7 @@ func ExecuteInstallation(cfg InstallConfig, rootSourcePath string) error {
 	}
 
 	// Deploy Discord Updater database and packages into app/ (CRITICAL: prevents InconsistentInstallerState)
-	updateStatus(55, "กำลังติดตั้งฐานข้อมูลและแพ็กเกจ Discord Updater...", false, "")
+	updateStatus(55, "กำลังติดตั้งฐานข้อมูลระบบ...", false, "")
 	dstAppBase := filepath.Join(cfg.InstallDir, "app")
 	_ = os.MkdirAll(dstAppBase, 0755)
 
@@ -291,7 +291,7 @@ func ExecuteInstallation(cfg InstallConfig, rootSourcePath string) error {
 	}
 
 	// Initialize Profiles
-	updateStatus(70, "กำลังสร้างโปรไฟล์และแยกพื้นที่ข้อมูล...", false, "")
+	updateStatus(70, "กำลังสร้างพื้นที่โปรไฟล์...", false, "")
 	if len(cfg.Profiles) == 0 {
 		cfg.Profiles = []string{"01_yellow"}
 	}
@@ -317,7 +317,7 @@ func ExecuteInstallation(cfg InstallConfig, rootSourcePath string) error {
 		if cfg.CreateShortcuts {
 			displayName := profileDisplayName(prof)
 			pct := 70 + int((float64(idx+1)/float64(len(cfg.Profiles)))*20)
-			updateStatus(pct, fmt.Sprintf("กำลังสร้างทางลัดบน Desktop สำหรับ %s...", displayName), false, "")
+			updateStatus(pct, fmt.Sprintf("กำลังสร้างทางลัด %s...", displayName), false, "")
 
 			iconFile := resolveSetupIcon(prof, dstIcons)
 
@@ -340,10 +340,10 @@ func ExecuteInstallation(cfg InstallConfig, rootSourcePath string) error {
 		}
 	}
 
-	updateStatus(95, "กำลังตรวจสอบความสมบูรณ์ขั้นสุดท้าย...", false, "")
+	updateStatus(95, "กำลังตรวจสอบความพร้อม...", false, "")
 	time.Sleep(500 * time.Millisecond)
 
-	updateStatus(100, "ติดตั้งเสร็จสมบูรณ์เรียบร้อยแล้ว!", true, "")
+	updateStatus(100, "ติดตั้งเสร็จสมบูรณ์", true, "")
 
 	// Note: Auto-launching is handled gracefully by user clicking "Finish" on Step 4
 	return nil

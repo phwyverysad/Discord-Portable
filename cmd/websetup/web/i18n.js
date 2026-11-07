@@ -1,7 +1,7 @@
 /**
  * i18n Translation Dictionary for Discord PTB Portable + Vencord WebSetup
  * Strict Constraint: ZERO EMOJIS - Strictly clean professional text only.
- * Principles: 10 Usability Heuristics & Cognitive Clarity
+ * Principles: Concise UX Copywriting, 10 Usability Heuristics & Cognitive Clarity
  */
 
 const translations = {
@@ -21,47 +21,48 @@ const translations = {
     step4Title: "เสร็จสิ้น",
 
     // Step 1: Install Path
-    installPathLabel: "โฟลเดอร์สำหรับติดตั้ง",
-    installPathDesc: "ระบุตำแหน่งที่ต้องการติดตั้ง Discord PTB Portable บนเครื่องของคุณ",
+    installPathLabel: "โฟลเดอร์ติดตั้ง",
+    installPathDesc: "เลือกตำแหน่งจัดเก็บโปรแกรมบนเครื่องของคุณ",
+    installPathCallout: "แยกโปรไฟล์และข้อมูลอิสระ ไม่ปะปนกับ Discord หลัก",
     browseFolderBtn: "เลือกโฟลเดอร์",
     nextBtn: "ถัดไป",
 
     // Step 2: Profiles & Vencord
-    profileSectionTitle: "เลือกโปรไฟล์สี Discord (1-12 บัญชี)",
-    profileSectionDesc: "คลิกเลือกสีประจำตัวสำหรับแต่ละบัญชี ระบบจะสร้างไอคอนสีและแยกพื้นที่จัดเก็บข้อมูลให้โดยอัตโนมัติ",
+    profileSectionTitle: "เลือกโปรไฟล์สี",
+    profileSectionDesc: "เลือกสีประจำบัญชีเพื่อแยกไอคอนและข้อมูล",
     selectAllBtn: "เลือกทั้งหมด",
     deselectAllBtn: "ล้างการเลือก",
-    selectedCount: "เลือกแล้ว {count} โปรไฟล์",
-    vencordTitle: "ติดตั้ง Vencord Client Mod",
-    vencordDesc: "ติดตั้งปลั๊กอินและธีมตกแต่ง ปรับแต่งการใช้งาน Discord ได้อย่างอิสระ",
-    launchNowLabel: "เปิด Discord PTB ทันทีหลังติดตั้งเสร็จ",
-    launchNowDesc: "เปิดโปรแกรมโปรไฟล์แรกทันทีเมื่อกดเสร็จสิ้น",
-    createDesktopShortcutsLabel: "สร้างไอคอนทางลัดไว้หน้าเดสก์ท็อป",
-    createDesktopShortcutsDesc: "สร้างทางลัดพร้อมไอคอนสีของแต่ละบัญชีบนหน้าจอ Desktop",
+    selectedCount: "เลือกแล้ว {count} บัญชี",
+    vencordTitle: "ติดตั้ง Vencord",
+    vencordDesc: "เพิ่มปลั๊กอินและธีมปรับแต่ง",
+    launchNowLabel: "เปิด Discord ทันที",
+    launchNowDesc: "เปิดใช้งานทันทีหลังติดตั้งเสร็จ",
+    createDesktopShortcutsLabel: "สร้างทางลัดบนเดสก์ท็อป",
+    createDesktopShortcutsDesc: "สร้างไอคอนสีแยกแต่ละโปรไฟล์บน Desktop",
     backBtn: "ย้อนกลับ",
-    startInstallBtn: "เริ่มการติดตั้ง",
+    startInstallBtn: "ติดตั้งทันที",
 
     // Step 3: Installation Progress
-    installingTitle: "กำลังดำเนินการติดตั้ง",
-    installingDesc: "ระบบกำลังเตรียมไฟล์ Discord PTB, Vencord และพื้นที่โปรไฟล์อย่างปลอดภัย...",
-    stage1Name: "ดาวน์โหลดแพ็กเกจ Discord PTB ล่าสุด",
-    stage2Name: "ผสานระบบ Vencord Client Mod",
-    stage3Name: "จัดเตรียมโฟลเดอร์โปรไฟล์และความปลอดภัย",
-    stage4Name: "สร้างทางลัดบน Desktop และไอคอนสีประจำระบบ",
+    installingTitle: "กำลังติดตั้ง",
+    installingDesc: "ระบบกำลังจัดเตรียมไฟล์และโปรไฟล์...",
+    stage1Name: "ดาวน์โหลด Discord PTB",
+    stage2Name: "ติดตั้ง Vencord",
+    stage3Name: "จัดเตรียมพื้นที่โปรไฟล์",
+    stage4Name: "สร้างทางลัดและไอคอนสี",
     statusPreparing: "กำลังเตรียมระบบ...",
-    statusDownloading: "กำลังดาวน์โหลดไฟล์ Discord PTB...",
-    statusVencord: "กำลังติดตั้งและตั้งค่า Vencord...",
-    statusHardening: "กำลังเปิดใช้งานเกราะป้องกัน Anti-Grabber และสิทธิ์ NTFS...",
-    statusShortcuts: "กำลังสร้างไอคอนทางลัดสีสันสดใส...",
-    statusCompleted: "การติดตั้งเสร็จสมบูรณ์เรียบร้อยแล้ว",
+    statusDownloading: "กำลังดาวน์โหลดไฟล์...",
+    statusVencord: "กำลังติดตั้ง Vencord...",
+    statusHardening: "กำลังตั้งค่าความปลอดภัย...",
+    statusShortcuts: "กำลังสร้างไอคอนทางลัด...",
+    statusCompleted: "ติดตั้งเสร็จสมบูรณ์",
 
     // Step 4: Finished
-    finishTitle: "ติดตั้งเสร็จสิ้นเรียบร้อยแล้ว",
-    finishDesc: "Discord PTB Portable พร้อมใช้งานสำหรับบัญชีทั้งหมดที่คุณเลือกแล้ว",
+    finishTitle: "ติดตั้งเสร็จสมบูรณ์",
+    finishDesc: "Discord PTB พร้อมใช้งานแล้ว",
     finishBtn: "เสร็จสิ้น",
 
     // Alerts
-    alertSelectAtLeastOne: "กรุณาเลือกโปรไฟล์อย่างน้อย 1 สีเพื่อดำเนินการต่อ",
+    alertSelectAtLeastOne: "กรุณาเลือกอย่างน้อย 1 สี",
     alertError: "เกิดข้อผิดพลาด: ",
   },
 
@@ -76,53 +77,54 @@ const translations = {
 
     // Step Indicator
     step1Title: "Install Path",
-    step2Title: "Select Profiles",
+    step2Title: "Profiles",
     step3Title: "Installing",
     step4Title: "Completed",
 
     // Step 1: Install Path
     installPathLabel: "Installation Folder",
-    installPathDesc: "Specify the directory where Discord PTB Portable will be installed on your system",
-    browseFolderBtn: "Browse Folder",
+    installPathDesc: "Choose where to install Discord PTB Portable",
+    installPathCallout: "Isolated data and cache. Independent from system Discord.",
+    browseFolderBtn: "Browse",
     nextBtn: "Next",
 
     // Step 2: Profiles & Vencord
-    profileSectionTitle: "Select Discord Colored Profiles (1-12 Accounts)",
-    profileSectionDesc: "Click to select color profiles for each account. The system creates colored icons and isolated data storage.",
+    profileSectionTitle: "Select Color Profiles",
+    profileSectionDesc: "Choose colors to separate icons and account data",
     selectAllBtn: "Select All",
-    deselectAllBtn: "Clear Selection",
-    selectedCount: "{count} profile(s) selected",
-    vencordTitle: "Install Vencord Client Mod",
-    vencordDesc: "Install client plugins and custom themes to personalize your Discord experience.",
-    launchNowLabel: "Launch Discord PTB immediately after install",
-    launchNowDesc: "Open primary profile window when clicking Finish",
-    createDesktopShortcutsLabel: "Create desktop shortcuts with colored icons",
-    createDesktopShortcutsDesc: "Place colored shortcuts on desktop for each profile",
+    deselectAllBtn: "Clear",
+    selectedCount: "{count} selected",
+    vencordTitle: "Install Vencord",
+    vencordDesc: "Add plugins and custom themes",
+    launchNowLabel: "Launch Discord immediately",
+    launchNowDesc: "Open profile window when finished",
+    createDesktopShortcutsLabel: "Create desktop shortcuts",
+    createDesktopShortcutsDesc: "Place colored icons on desktop",
     backBtn: "Back",
     startInstallBtn: "Install Now",
 
     // Step 3: Installation Progress
-    installingTitle: "Installation in Progress",
-    installingDesc: "Setting up Discord PTB, Vencord, and secure profile directories...",
-    stage1Name: "Download latest Discord PTB package",
-    stage2Name: "Inject Vencord Client Mod",
-    stage3Name: "Prepare isolated profiles and security shield",
-    stage4Name: "Create desktop shortcuts with colored icons",
+    installingTitle: "Installing",
+    installingDesc: "Setting up files and profile data...",
+    stage1Name: "Download Discord PTB",
+    stage2Name: "Install Vencord",
+    stage3Name: "Setup profile data",
+    stage4Name: "Create shortcuts and icons",
     statusPreparing: "Preparing setup...",
-    statusDownloading: "Downloading Discord PTB package...",
-    statusVencord: "Configuring Vencord Client Mod...",
-    statusHardening: "Enforcing Anti-Grabber shield and NTFS DACL...",
-    statusShortcuts: "Creating desktop shortcuts...",
-    statusCompleted: "Installation completed successfully",
+    statusDownloading: "Downloading files...",
+    statusVencord: "Installing Vencord...",
+    statusHardening: "Setting up security...",
+    statusShortcuts: "Creating shortcuts...",
+    statusCompleted: "Setup complete",
 
     // Step 4: Finished
-    finishTitle: "Installation Completed Successfully",
-    finishDesc: "Discord PTB Portable is ready to use for all selected accounts.",
+    finishTitle: "Setup Complete",
+    finishDesc: "Discord PTB is ready to use.",
     finishBtn: "Finish",
 
     // Alerts
-    alertSelectAtLeastOne: "Please select at least 1 color profile to proceed.",
-    alertError: "An error occurred: ",
+    alertSelectAtLeastOne: "Please select at least 1 color profile.",
+    alertError: "Error: ",
   },
 };
 
@@ -153,23 +155,22 @@ class I18nManager {
   }
 
   applyLanguage(lang) {
+    const dict = translations[lang] || translations["th"];
     document.querySelectorAll("[data-i18n]").forEach((el) => {
       const key = el.getAttribute("data-i18n");
-      const translation = this.t(key);
-      if (translation) {
-        if (el.tagName === "INPUT" && el.type === "button") {
-          el.value = translation;
+      if (dict[key]) {
+        if (el.tagName === "INPUT" && el.getAttribute("type") === "button") {
+          el.value = dict[key];
         } else {
-          el.textContent = translation;
+          el.textContent = dict[key];
         }
       }
     });
 
     document.querySelectorAll("[data-i18n-title]").forEach((el) => {
       const key = el.getAttribute("data-i18n-title");
-      const translation = this.t(key);
-      if (translation) {
-        el.title = translation;
+      if (dict[key]) {
+        el.setAttribute("title", dict[key]);
       }
     });
   }

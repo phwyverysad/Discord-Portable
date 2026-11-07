@@ -398,10 +398,17 @@ html, body {
    ========================================================================== */
 .window-content {
   flex: 1;
-  overflow-y: auto;
-  padding: 16px 20px;
+  overflow-x: hidden;
+  overflow-y: hidden;
+  padding: 12px 18px;
   display: flex;
   flex-direction: column;
+}
+
+.window-content::-webkit-scrollbar {
+  width: 0px;
+  height: 0px;
+  display: none;
 }
 
 .step-view {
@@ -425,7 +432,7 @@ html, body {
   border: 1px solid var(--border-card);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
-  padding: 20px;
+  padding: 12px 16px;
   transition: var(--transition);
 }
 
@@ -581,9 +588,9 @@ html, body {
 
 .profiles-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  margin-top: 8px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+  margin-top: 6px;
 }
 
 /* The Individual Profile Card Tile */
@@ -591,7 +598,8 @@ html, body {
   background: #FFFFFF;
   border: 1.5px solid var(--border-card);
   border-radius: var(--radius-card-sm);
-  padding: 7px 10px;
+  padding: 5px 9px;
+  min-height: 36px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -614,9 +622,9 @@ html, body {
 }
 
 .profile-icon-wrap {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
   border: 1px solid transparent;
   display: flex;
   align-items: center;
@@ -625,8 +633,8 @@ html, body {
 }
 
 .profile-icon-img {
-  width: 20px;
-  height: 20px;
+  width: 17px;
+  height: 17px;
   object-fit: contain;
 }
 
@@ -636,12 +644,12 @@ html, body {
 }
 
 .profile-name {
-  font-size: 0.75rem;
+  font-size: 0.78rem;
   font-weight: 600;
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
+  text-overflow: clip;
 }
 
 .profile-check {
@@ -680,13 +688,14 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
+  padding: 1px 0;
 }
 
 .switch-divider {
   height: 1px;
   background: #EDF2F7;
-  margin: 10px 0;
+  margin: 5px 0;
 }
 
 .switch-info {
@@ -704,9 +713,9 @@ html, body {
 }
 
 .switch-desc {
-  font-size: 0.74rem;
+  font-size: 0.71rem;
   color: var(--text-secondary);
-  margin-top: 2px;
+  margin-top: 1px;
 }
 
 .toggle-switch {

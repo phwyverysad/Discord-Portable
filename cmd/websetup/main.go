@@ -202,9 +202,9 @@ func main() {
 	}
 	procRegisterClassExW.Call(uintptr(unsafe.Pointer(&wc)))
 
-	// 3. Compact window dimensions: 760 x 540 (centered)
-	width := int32(760)
-	height := int32(540)
+	// 3. Compact window dimensions: 800 x 570 (centered)
+	width := int32(800)
+	height := int32(570)
 	scrW, _, _ := procGetSystemMetrics.Call(SM_CXSCREEN)
 	scrH, _, _ := procGetSystemMetrics.Call(SM_CYSCREEN)
 	x := (int32(scrW) - width) / 2
@@ -282,7 +282,7 @@ func main() {
 
 		appArgs := []string{
 			fmt.Sprintf("--app=%s", targetURL),
-			"--window-size=760,540",
+			"--window-size=800,570",
 			fmt.Sprintf("--user-data-dir=%s", tempBrowserData),
 			"--no-first-run",
 			"--no-default-browser-check",

@@ -41,6 +41,12 @@
     initI18n();
     initEvents();
     loadProfiles();
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialStep = parseInt(urlParams.get("step"), 10);
+    if (initialStep >= 1 && initialStep <= 4) {
+      goToStep(initialStep);
+    }
   });
 
   function cacheElements() {
@@ -79,7 +85,13 @@
   }
 
   function initI18n() {
-    window.I18N.init();
+    const urlParams = new URLSearchParams(window.location.search);
+    const langParam = urlParams.get("lang");
+    if (langParam && (langParam === "en" || langParam === "th")) {
+      window.I18N.setLanguage(langParam);
+    } else {
+      window.I18N.init();
+    }
 
     // Custom Language Dropdown Wiring
     const dropdown = document.getElementById("lang-dropdown");

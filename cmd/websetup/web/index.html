@@ -146,8 +146,8 @@
               </svg>
             </div>
             <div>
-              <h2 class="card-title" data-i18n="installPathLabel">โฟลเดอร์สำหรับติดตั้ง</h2>
-              <p class="card-subtitle" data-i18n="installPathDesc">ระบุตำแหน่งที่ต้องการติดตั้ง Discord PTB Portable บนเครื่องของคุณ</p>
+              <h2 class="card-title" data-i18n="installPathLabel">โฟลเดอร์ติดตั้ง</h2>
+              <p class="card-subtitle" data-i18n="installPathDesc">เลือกตำแหน่งจัดเก็บโปรแกรมบนเครื่องของคุณ</p>
             </div>
           </div>
 
@@ -165,7 +165,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
             </svg>
-            <span>ระบบแยกข้อมูลโปรไฟล์ โทเค็น และแคชไว้ในโฟลเดอร์นี้อย่างสมบูรณ์แบบ ไม่ปะปนกับ Discord หลักของวินโดว์</span>
+            <span data-i18n="installPathCallout">แยกโปรไฟล์และข้อมูลอิสระ ไม่ปะปนกับ Discord หลัก</span>
           </div>
         </div>
       </section>
@@ -175,14 +175,14 @@
            =================================================================== -->
       <section id="step-2" class="step-view">
         <!-- Elevated Profiles Card -->
-        <div class="card-layer" style="padding: 16px;">
+        <div class="card-layer" style="padding: 12px 14px;">
           <div class="section-header-compact">
             <div>
-              <h2 class="section-title" data-i18n="profileSectionTitle">เลือกโปรไฟล์สี Discord (1-12 บัญชี)</h2>
-              <p class="section-subtitle" data-i18n="profileSectionDesc">คลิกเลือกสีประจำตัวสำหรับแต่ละบัญชี ระบบจะสร้างไอคอนสีและแยกพื้นที่จัดเก็บข้อมูลให้โดยอัตโนมัติ</p>
+              <h2 class="section-title" data-i18n="profileSectionTitle">เลือกโปรไฟล์สี</h2>
+              <p class="section-subtitle" data-i18n="profileSectionDesc">เลือกสีประจำบัญชีเพื่อแยกไอคอนและข้อมูล</p>
             </div>
             <div class="profile-toolbar">
-              <div id="profile-counter" class="profile-counter">1 โปรไฟล์ถูกเลือก</div>
+              <div id="profile-counter" class="profile-counter">เลือกแล้ว 1 บัญชี</div>
               <div class="profile-actions">
                 <button type="button" id="btn-select-all" class="btn-pill">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -207,16 +207,13 @@
         </div>
 
         <!-- Elevated Options Card (Vencord, Launch Now, Desktop Shortcuts) -->
-        <div class="card-layer" style="margin-top: 12px; padding: 14px 18px;">
+        <div class="card-layer" style="margin-top: 8px; padding: 8px 14px;">
           <div class="custom-switch-item">
             <div class="switch-info">
               <div class="switch-title">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2">
-                  <path d="M19.5 12.5a2.5 2.5 0 0 0-2.5-2.5H16V6a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v4H6a2.5 2.5 0 0 0 0 5h2v4a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-4h1a2.5 2.5 0 0 0 2.5-2.5z"></path>
-                </svg>
-                <span data-i18n="vencordTitle">ติดตั้ง Vencord Client Mod</span>
+                <span data-i18n="vencordTitle">ติดตั้ง Vencord</span>
               </div>
-              <div class="switch-desc" data-i18n="vencordDesc">ติดตั้งปลั๊กอินและธีมตกแต่ง ปรับแต่งการใช้งาน Discord ได้อย่างอิสระ</div>
+              <div class="switch-desc" data-i18n="vencordDesc">เพิ่มปลั๊กอินและธีมปรับแต่ง</div>
             </div>
             <label class="toggle-switch">
               <input type="checkbox" id="switch-vencord" checked />
@@ -229,12 +226,9 @@
           <div class="custom-switch-item">
             <div class="switch-info">
               <div class="switch-title">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2">
-                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                </svg>
-                <span data-i18n="launchNowLabel">เปิด Discord PTB ทันทีหลังติดตั้งเสร็จ</span>
+                <span data-i18n="launchNowLabel">เปิด Discord ทันที</span>
               </div>
-              <div class="switch-desc" data-i18n="launchNowDesc">เปิดโปรแกรมโปรไฟล์แรกทันทีเมื่อกดเสร็จสิ้น</div>
+              <div class="switch-desc" data-i18n="launchNowDesc">เปิดใช้งานทันทีหลังติดตั้งเสร็จ</div>
             </div>
             <label class="toggle-switch">
               <input type="checkbox" id="switch-launch-now" checked />
@@ -247,14 +241,9 @@
           <div class="custom-switch-item">
             <div class="switch-info">
               <div class="switch-title">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2">
-                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                  <line x1="8" y1="21" x2="16" y2="21"></line>
-                  <line x1="12" y1="17" x2="12" y2="21"></line>
-                </svg>
-                <span data-i18n="createDesktopShortcutsLabel">สร้างไอคอนทางลัดไว้หน้าเดสก์ท็อป</span>
+                <span data-i18n="createDesktopShortcutsLabel">สร้างทางลัดบนเดสก์ท็อป</span>
               </div>
-              <div class="switch-desc" data-i18n="createDesktopShortcutsDesc">สร้างทางลัดพร้อมไอคอนสีของแต่ละบัญชีบนหน้าจอ Desktop</div>
+              <div class="switch-desc" data-i18n="createDesktopShortcutsDesc">สร้างไอคอนสีแยกแต่ละโปรไฟล์บน Desktop</div>
             </div>
             <label class="toggle-switch">
               <input type="checkbox" id="switch-desktop-shortcuts" checked />
@@ -270,8 +259,8 @@
       <section id="step-3" class="step-view">
         <div class="card-layer" style="padding: 24px;">
           <div class="section-header-center">
-            <h2 class="section-title" data-i18n="installingTitle">กำลังดำเนินการติดตั้ง</h2>
-            <p class="section-subtitle" data-i18n="installingDesc">ระบบกำลังเตรียมไฟล์ Discord PTB, Vencord และพื้นที่โปรไฟล์อย่างปลอดภัย...</p>
+            <h2 class="section-title" data-i18n="installingTitle">กำลังติดตั้ง</h2>
+            <p class="section-subtitle" data-i18n="installingDesc">ระบบกำลังจัดเตรียมไฟล์และโปรไฟล์...</p>
           </div>
 
           <!-- Rounded Progress Bar Track -->
@@ -293,7 +282,7 @@
                   <polyline points="20 6 9 17 4 12"></polyline>
                 </svg>
               </div>
-              <span data-i18n="stage1Name">ดาวน์โหลดแพ็กเกจ Discord PTB ล่าสุด</span>
+              <span data-i18n="stage1Name">ดาวน์โหลด Discord PTB</span>
             </div>
 
             <div class="stage-item" data-stage="2">
@@ -302,7 +291,7 @@
                   <polyline points="20 6 9 17 4 12"></polyline>
                 </svg>
               </div>
-              <span data-i18n="stage2Name">ผสานระบบ Vencord Client Mod</span>
+              <span data-i18n="stage2Name">ติดตั้ง Vencord</span>
             </div>
 
             <div class="stage-item" data-stage="3">
@@ -311,7 +300,7 @@
                   <polyline points="20 6 9 17 4 12"></polyline>
                 </svg>
               </div>
-              <span data-i18n="stage3Name">จัดเตรียมโฟลเดอร์โปรไฟล์และความปลอดภัย</span>
+              <span data-i18n="stage3Name">จัดเตรียมพื้นที่โปรไฟล์</span>
             </div>
 
             <div class="stage-item" data-stage="4">
@@ -320,7 +309,7 @@
                   <polyline points="20 6 9 17 4 12"></polyline>
                 </svg>
               </div>
-              <span data-i18n="stage4Name">สร้างทางลัดบน Desktop และไอคอนสีประจำระบบ</span>
+              <span data-i18n="stage4Name">สร้างทางลัดและไอคอนสี</span>
             </div>
           </div>
         </div>
@@ -338,8 +327,8 @@
             </svg>
           </div>
 
-          <h2 class="section-title" data-i18n="finishTitle" style="margin-top: 12px;">ติดตั้งเสร็จสิ้นเรียบร้อยแล้ว</h2>
-          <p class="section-subtitle" data-i18n="finishDesc">Discord PTB Portable พร้อมใช้งานสำหรับบัญชีที่คุณเลือกแล้ว</p>
+          <h2 class="section-title" data-i18n="finishTitle" style="margin-top: 12px;">ติดตั้งเสร็จสมบูรณ์</h2>
+          <p class="section-subtitle" data-i18n="finishDesc">Discord PTB พร้อมใช้งานแล้ว</p>
 
           <!-- Post-Install Checklist Options -->
           <div class="post-install-options" style="margin: 20px auto 24px auto; max-width: 360px;">
@@ -348,7 +337,7 @@
               <div class="checkbox-box">
                 <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"></polyline></svg>
               </div>
-              <span data-i18n="launchNowLabel">เปิด Discord PTB ทันทีหลังปิดตัวติดตั้ง</span>
+              <span data-i18n="launchNowLabel">เปิด Discord ทันที</span>
             </label>
 
             <label class="custom-checkbox">
@@ -356,7 +345,7 @@
               <div class="checkbox-box">
                 <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"></polyline></svg>
               </div>
-              <span data-i18n="createDesktopShortcutsLabel">สร้างไอคอนทางลัดไว้หน้าเดสก์ท็อป</span>
+              <span data-i18n="createDesktopShortcutsLabel">สร้างทางลัดบนเดสก์ท็อป</span>
             </label>
           </div>
 
