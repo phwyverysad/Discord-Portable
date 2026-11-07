@@ -7,220 +7,132 @@ const translations = {
   th: {
     // Header & Meta
     appTitle: "Discord PTB Portable",
-    appSubtitle: "ระบบติดตั้งแบบพกพา พร้อม Vencord และความปลอดภัยขั้นสูง",
-    badgeSecure: "ระบบความปลอดภัยป้องกันการดักจับข้อมูล",
-    badgeSelfUpdating: "รองรับการอัปเดตอัตโนมัติ",
     langTh: "ไทย",
     langEn: "EN",
 
     // Step Indicator
-    step1Title: "โหมดติดตั้ง",
+    step1Title: "โฟลเดอร์ติดตั้ง",
     step2Title: "เลือกโปรไฟล์",
     step3Title: "กำลังติดตั้ง",
     step4Title: "เสร็จสิ้น",
 
-    // Step 1: Mode Selection
-    modeSectionTitle: "เลือกรูปแบบการติดตั้ง",
-    modeSectionDesc: "เลือกรูปแบบที่เหมาะสมกับการใช้งานของคุณมากที่สุด",
-    modePcTitle: "ติดตั้งบนคอมพิวเตอร์ (Standard PC)",
-    modePcDesc: "เหมาะสำหรับการใช้งานประจำเครื่อง สร้างไอคอนทางลัดบน Desktop และเชื่อมต่อ Rich Presence สมบูรณ์แบบ",
-    modeUsbTitle: "พกพาเต็มรูปแบบ (True USB Portable)",
-    modeUsbDesc: "ไม่เขียนข้อมูลลง Windows Registry รันจาก Flash Drive ได้ทันทีโดยไม่ทิ้งร่องรอยในเครื่อง",
+    // Step 1: Install Path
     installPathLabel: "โฟลเดอร์สำหรับติดตั้ง",
+    installPathDesc: "ระบุตำแหน่งที่ต้องการติดตั้ง Discord PTB Portable บนเครื่องของคุณ",
     browseFolderBtn: "เลือกโฟลเดอร์",
     nextBtn: "ถัดไป",
 
-    // Step 2: Profiles & Pro Features
+    // Step 2: Profiles & Vencord
     profileSectionTitle: "เลือกโปรไฟล์สี Discord (1-12 บัญชี)",
     profileSectionDesc: "คลิกเลือกสีประจำตัวสำหรับแต่ละบัญชี ระบบจะสร้างไอคอนสีและแยกพื้นที่จัดเก็บข้อมูลให้โดยอัตโนมัติ",
     selectAllBtn: "เลือกทั้งหมด",
     deselectAllBtn: "ล้างการเลือก",
     selectedCount: "เลือกแล้ว {count} โปรไฟล์",
-    primaryRpcBadge: "Primary RPC (Pipe 0)",
-    secondaryRpcBadge: "Isolated Pipe",
-
-    // Pro Features
-    proFeaturesTitle: "ฟีเจอร์ระดับโปร (Pro Settings)",
-    ecoModeTitle: "Eco / Low-RAM Mode (โหมดประหยัดแรม)",
-    ecoModeDesc: "ลดอัตราเรนเดอร์เฟรมและจำกัดการทำงานเบื้องหลัง ประหยัดแรมสูงสุด 40-60%",
-    securityShieldTitle: "Anti-Grabber Security Shield",
-    securityShieldDesc: "ป้องกันการดักจับ Username, Password และ Token โดยจำกัดสิทธิ์ NTFS และบล็อก Debugging Flags",
     vencordTitle: "ติดตั้ง Vencord Client Mod",
     vencordDesc: "ติดตั้งปลั๊กอินและธีมตกแต่ง ปรับแต่งการใช้งาน Discord ได้อย่างอิสระ",
-    backupTitle: "สำรองและกู้คืนข้อมูลโปรไฟล์",
-    backupDesc: "จัดเก็บหรือนำเข้าข้อมูลโปรไฟล์ทั้งหมดในรูปแบบไฟล์บีบอัด (.zip)",
-    backupBtn: "สำรองข้อมูล (Backup)",
-    restoreBtn: "กู้คืนข้อมูล (Restore)",
     backBtn: "ย้อนกลับ",
     startInstallBtn: "เริ่มการติดตั้ง",
 
     // Step 3: Installation Progress
     installingTitle: "กำลังดำเนินการติดตั้ง",
-    installingDesc: "ระบบกำลังเตรียมไฟล์ Discord PTB, Vencord และคอนฟิกโปรไฟล์ความปลอดภัย...",
+    installingDesc: "ระบบกำลังเตรียมไฟล์ Discord PTB, Vencord และพื้นที่โปรไฟล์อย่างปลอดภัย...",
     stage1Name: "ดาวน์โหลดแพ็กเกจ Discord PTB ล่าสุด",
     stage2Name: "ผสานระบบ Vencord Client Mod",
-    stage3Name: "จัดเตรียมโฟลเดอร์โปรไฟล์และเกราะความปลอดภัย",
-    stage4Name: "สร้างทางลัดบน Desktop และไอคอนสีประจำถาดระบบ",
+    stage3Name: "จัดเตรียมโฟลเดอร์โปรไฟล์และความปลอดภัย",
+    stage4Name: "สร้างทางลัดบน Desktop และไอคอนสีประจำระบบ",
     statusPreparing: "กำลังเตรียมระบบ...",
     statusDownloading: "กำลังดาวน์โหลดไฟล์ Discord PTB...",
     statusVencord: "กำลังติดตั้งและตั้งค่า Vencord...",
     statusHardening: "กำลังเปิดใช้งานเกราะป้องกัน Anti-Grabber และสิทธิ์ NTFS...",
     statusShortcuts: "กำลังสร้างไอคอนทางลัดสีสันสดใส...",
     statusCompleted: "การติดตั้งเสร็จสมบูรณ์เรียบร้อยแล้ว",
-    viewLogsToggle: "แสดงบันทึกการทำงาน (Logs)",
 
     // Step 4: Finished
     finishTitle: "ติดตั้งเสร็จสิ้นเรียบร้อยแล้ว",
     finishDesc: "Discord PTB Portable พร้อมใช้งานสำหรับบัญชีทั้งหมดที่คุณเลือกแล้ว",
-    summaryModeLabel: "รูปแบบการติดตั้ง:",
-    summaryProfilesLabel: "จำนวนโปรไฟล์ที่ติดตั้ง:",
-    summarySecurityLabel: "ระบบความปลอดภัย:",
-    summarySecurityActive: "เปิดใช้งาน (ป้องกัน Token สมบูรณ์แบบ)",
     launchNowLabel: "เปิด Discord PTB ทันทีหลังปิดตัวติดตั้ง",
-    launchProfileSelectLabel: "เลือกโปรไฟล์ที่จะเปิด:",
     createDesktopShortcutsLabel: "สร้างไอคอนทางลัดบนหน้าจอเดสก์ท็อป",
     finishBtn: "เสร็จสิ้นและเปิดโปรแกรม",
-    finishOnlyBtn: "เสร็จสิ้น",
-    openFolderBtn: "เปิดโฟลเดอร์ติดตั้ง",
 
-    // Alerts and Dialogs
+    // Alerts
     alertSelectAtLeastOne: "กรุณาเลือกโปรไฟล์อย่างน้อย 1 สีเพื่อดำเนินการต่อ",
-    alertBackupSuccess: "สำรองข้อมูลโปรไฟล์สำเร็จเรียบร้อยแล้ว",
-    alertRestoreSuccess: "กู้คืนข้อมูลโปรไฟล์สำเร็จเรียบร้อยแล้ว",
     alertError: "เกิดข้อผิดพลาด: ",
   },
 
   en: {
     // Header & Meta
     appTitle: "Discord PTB Portable",
-    appSubtitle: "Portable Setup with Vencord & Advanced Security Protection",
-    badgeSecure: "Anti-Grabber Security Guard Active",
-    badgeSelfUpdating: "Self-Updating Ready",
     langTh: "TH",
     langEn: "English",
 
     // Step Indicator
-    step1Title: "Install Mode",
-    step2Title: "Profiles & Colors",
-    step3Title: "Installation",
-    step4Title: "Complete",
+    step1Title: "Install Path",
+    step2Title: "Select Profiles",
+    step3Title: "Installing",
+    step4Title: "Completed",
 
-    // Step 1: Mode Selection
-    modeSectionTitle: "Select Installation Mode",
-    modeSectionDesc: "Choose the deployment style that best fits your workflow",
-    modePcTitle: "Standard PC Installation",
-    modePcDesc: "Best for daily desktop usage. Generates color-coded desktop shortcuts and seamless Rich Presence.",
-    modeUsbTitle: "True USB Portable Mode",
-    modeUsbDesc: "Zero Windows Registry writes. Run cleanly from USB flash drives without leaving traces behind.",
-    installPathLabel: "Target Installation Directory",
-    browseFolderBtn: "Browse",
+    // Step 1: Install Path
+    installPathLabel: "Installation Folder",
+    installPathDesc: "Specify the directory where Discord PTB Portable will be installed on your system",
+    browseFolderBtn: "Browse Folder",
     nextBtn: "Next",
 
-    // Step 2: Profiles & Pro Features
-    profileSectionTitle: "Select Colored Discord Profiles (1-12 Accounts)",
-    profileSectionDesc: "Click to select distinct color themes for each account. Independent data isolation and colored icons are configured automatically.",
+    // Step 2: Profiles & Vencord
+    profileSectionTitle: "Select Discord Colored Profiles (1-12 Accounts)",
+    profileSectionDesc: "Click to select color profiles for each account. The system creates colored icons and isolated data storage.",
     selectAllBtn: "Select All",
     deselectAllBtn: "Clear Selection",
-    selectedCount: "{count} Profiles Selected",
-    primaryRpcBadge: "Primary RPC (Pipe 0)",
-    secondaryRpcBadge: "Isolated Pipe",
-
-    // Pro Features
-    proFeaturesTitle: "Professional Settings",
-    ecoModeTitle: "Eco / Low-RAM Mode",
-    ecoModeDesc: "Throttles background rendering frames and trims resource footprint by up to 40-60%.",
-    securityShieldTitle: "Anti-Grabber Security Shield",
-    securityShieldDesc: "Hardens credentials against stealers by applying restricted NTFS ACLs and filtering inspection flags.",
+    selectedCount: "{count} profile(s) selected",
     vencordTitle: "Install Vencord Client Mod",
-    vencordDesc: "Empower Discord with customizable plugins, performance patches, and user themes.",
-    backupTitle: "Profile Backup & Recovery",
-    backupDesc: "Export or restore all user profiles into a compressed archive (.zip).",
-    backupBtn: "Backup Profiles",
-    restoreBtn: "Restore Profiles",
+    vencordDesc: "Install client plugins and custom themes to personalize your Discord experience.",
     backBtn: "Back",
-    startInstallBtn: "Start Installation",
+    startInstallBtn: "Install Now",
 
     // Step 3: Installation Progress
-    installingTitle: "Installing Discord PTB Suite",
-    installingDesc: "Deploying Discord PTB core, Vencord mod, and isolated security barriers...",
-    stage1Name: "Fetch Latest Discord PTB Core Package",
+    installingTitle: "Installation in Progress",
+    installingDesc: "Setting up Discord PTB, Vencord, and secure profile directories...",
+    stage1Name: "Download latest Discord PTB package",
     stage2Name: "Inject Vencord Client Mod",
-    stage3Name: "Configure Profile Sandboxes & Security Shield",
-    stage4Name: "Generate Color Desktop Shortcuts & System Tray Assets",
-    statusPreparing: "Preparing workspace...",
-    statusDownloading: "Downloading Discord PTB binary assets...",
-    statusVencord: "Configuring Vencord mod loader...",
-    statusHardening: "Enforcing Anti-Grabber guard and NTFS security descriptors...",
-    statusShortcuts: "Generating color-coded desktop shortcuts...",
-    statusCompleted: "Installation finished successfully.",
-    viewLogsToggle: "View detailed logs",
+    stage3Name: "Prepare isolated profiles and security shield",
+    stage4Name: "Create desktop shortcuts with colored icons",
+    statusPreparing: "Preparing setup...",
+    statusDownloading: "Downloading Discord PTB package...",
+    statusVencord: "Configuring Vencord Client Mod...",
+    statusHardening: "Enforcing Anti-Grabber shield and NTFS DACL...",
+    statusShortcuts: "Creating desktop shortcuts...",
+    statusCompleted: "Installation completed successfully",
 
     // Step 4: Finished
-    finishTitle: "Installation Complete",
-    finishDesc: "Discord PTB Portable is ready for all your selected colored accounts.",
-    summaryModeLabel: "Deployment Mode:",
-    summaryProfilesLabel: "Installed Profiles:",
-    summarySecurityLabel: "Security Defense:",
-    summarySecurityActive: "Active (Hardened Token Protection)",
-    launchNowLabel: "Launch Discord PTB immediately on exit",
-    launchProfileSelectLabel: "Launch Profile:",
-    createDesktopShortcutsLabel: "Create desktop shortcuts for selected profiles",
-    finishBtn: "Finish & Launch",
-    finishOnlyBtn: "Finish",
-    openFolderBtn: "Open Target Folder",
+    finishTitle: "Installation Completed Successfully",
+    finishDesc: "Discord PTB Portable is ready to use for all selected accounts.",
+    launchNowLabel: "Launch Discord PTB now",
+    createDesktopShortcutsLabel: "Create desktop shortcuts with colored icons",
+    finishBtn: "Finish and Launch",
 
-    // Alerts and Dialogs
+    // Alerts
     alertSelectAtLeastOne: "Please select at least 1 color profile to proceed.",
-    alertBackupSuccess: "Profile backup completed successfully.",
-    alertRestoreSuccess: "Profile restoration completed successfully.",
-    alertError: "Error encountered: ",
-  }
+    alertError: "An error occurred: ",
+  },
 };
 
-window.I18N = {
-  currentLang: "th",
+class I18nManager {
+  constructor() {
+    this.currentLang = "th";
+  }
+
+  init() {
+    this.applyLanguage();
+  }
 
   setLanguage(lang) {
-    if (translations[lang]) {
-      this.currentLang = lang;
-      this.applyTranslations();
-      localStorage.setItem("preferred_lang", lang);
-    }
-  },
+    if (!translations[lang]) return;
+    this.currentLang = lang;
+    this.applyLanguage();
 
-  t(key, params = {}) {
-    const dict = translations[this.currentLang] || translations.th;
-    let text = dict[key] || translations.en[key] || key;
-    for (const [pKey, pVal] of Object.entries(params)) {
-      text = text.replace(new RegExp(`\\{${pKey}\\}`, "g"), pVal);
-    }
-    return text;
-  },
-
-  applyTranslations() {
-    // Translate all elements with data-i18n attribute
-    document.querySelectorAll("[data-i18n]").forEach((el) => {
-      const key = el.getAttribute("data-i18n");
-      const translation = this.t(key);
-      if (translation) {
-        el.textContent = translation;
-      }
-    });
-
-    // Translate placeholder attributes with data-i18n-placeholder
-    document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
-      const key = el.getAttribute("data-i18n-placeholder");
-      const translation = this.t(key);
-      if (translation) {
-        el.setAttribute("placeholder", translation);
-      }
-    });
-
-    // Update active state on language buttons
     const btnTh = document.getElementById("lang-btn-th");
     const btnEn = document.getElementById("lang-btn-en");
     if (btnTh && btnEn) {
-      if (this.currentLang === "th") {
+      if (lang === "th") {
         btnTh.classList.add("active");
         btnEn.classList.remove("active");
       } else {
@@ -229,18 +141,34 @@ window.I18N = {
       }
     }
 
-    // Dispatch event for components that need dynamic re-rendering
-    window.dispatchEvent(new CustomEvent("languageChanged", { detail: { lang: this.currentLang } }));
-  },
-
-  init() {
-    const saved = localStorage.getItem("preferred_lang");
-    if (saved && (saved === "th" || saved === "en")) {
-      this.currentLang = saved;
-    } else {
-      // Default to Thai as per requirements
-      this.currentLang = "th";
-    }
-    this.applyTranslations();
+    window.dispatchEvent(new CustomEvent("languageChanged", { detail: { lang } }));
   }
-};
+
+  t(key, replacements = {}) {
+    const dict = translations[this.currentLang] || translations.th;
+    let text = dict[key] || translations.th[key] || key;
+
+    Object.keys(replacements).forEach((k) => {
+      text = text.replace(new RegExp(`\\{${k}\\}`, "g"), replacements[k]);
+    });
+
+    return text;
+  }
+
+  applyLanguage() {
+    document.documentElement.lang = this.currentLang;
+    const elements = document.querySelectorAll("[data-i18n]");
+
+    elements.forEach((el) => {
+      const key = el.getAttribute("data-i18n");
+      const translation = this.t(key);
+      if (el.tagName === "INPUT" && el.getAttribute("placeholder")) {
+        el.setAttribute("placeholder", translation);
+      } else {
+        el.textContent = translation;
+      }
+    });
+  }
+}
+
+window.I18N = new I18nManager();
