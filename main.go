@@ -143,6 +143,13 @@ func main() {
 		log.Fatal().Err(err).Msg("Cannot initialize secure profile directory")
 	}
 
+	// Portable APPDATA isolation: redirect Electron's roaming appdata to portable profiles base
+	_ = os.Setenv("APPDATA", profilesBaseDir)
+	roamingDiscordPath := filepath.Join(profilesBaseDir, "discordptb")
+	_ = os.MkdirAll(roamingDiscordPath, 0700)
+	roamingSettingsPath := filepath.Join(roamingDiscordPath, "settings.json")
+	_ = os.WriteFile(roamingSettingsPath, []byte("{\n  \"SKIP_HOST_UPDATE\": true,\n  \"USE_PINNED_UPDATE_MANIFEST\": true\n}"), 0644)
+
 	// 5. Pro Feature: Smart RPC Router
 	rpc.ConfigureRouting(profileID)
 

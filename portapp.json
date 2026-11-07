@@ -1,0 +1,11 @@
+{
+  "id": "discord-ptb-portable",
+  "guid": "{0A7FE821-675B-4B75-ADFD-EEE26865A892}",
+  "name": "DiscordPTB Portable",
+  "version": "1.0.1231",
+  "release": "34",
+  "date": "2026-11-07",
+  "publisher": "Portapps",
+  "url": "https://github.com/portapps/discord-ptb-portable",
+  "portapps_version": "3.19.0"
+}

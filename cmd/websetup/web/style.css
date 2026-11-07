@@ -73,7 +73,8 @@ html, body {
   height: 100vh;
   box-sizing: border-box;
   background: #FFFFFF;
-  border: 1px solid #CBD5E1;
+  border: 1.5px solid #CBD5E1;
+  border-radius: 14px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -187,38 +188,160 @@ html, body {
   transform: scale(0.92);
 }
 
-.lang-switch {
-  display: flex;
-  align-items: center;
-  background: #F1F5F9;
-  border-radius: var(--radius-pill);
-  padding: 3px;
-  border: 1px solid #E2E8F0;
+/* ==========================================================================
+   Custom Dropdown (Modern, Non-classic Language Selector)
+   ========================================================================== */
+.custom-dropdown {
+  position: relative;
+  display: inline-block;
+  user-select: none;
+  -webkit-app-region: no-drag;
 }
 
-.lang-btn {
-  border: none;
-  background: transparent;
-  padding: 6px 14px;
-  border-radius: var(--radius-pill);
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: var(--transition);
+.dropdown-trigger {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-}
-
-.lang-btn.active {
-  background: #FFFFFF;
-  color: var(--primary);
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
-}
-
-.lang-btn:hover:not(.active) {
+  gap: 7px;
+  background: #F1F5F9;
+  border: 1.5px solid #E2E8F0;
+  border-radius: var(--radius-pill);
+  padding: 5px 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
   color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  outline: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.dropdown-trigger:hover {
+  background: #E2E8F0;
+  border-color: #CBD5E1;
+  color: #0F172A;
+}
+
+.dropdown-trigger.open {
+  background: #EFF6FF;
+  border-color: #93C5FD;
+  color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.dropdown-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--text-secondary);
+  transition: color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.dropdown-trigger.open .dropdown-icon {
+  color: var(--primary);
+}
+
+.dropdown-selected-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.dropdown-arrow {
+  width: 12px;
+  height: 12px;
+  color: var(--text-tertiary);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.dropdown-trigger.open .dropdown-arrow {
+  transform: rotate(180deg);
+  color: var(--primary);
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 135px;
+  background: #FFFFFF;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 5px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.06);
+  z-index: 1000;
+  opacity: 0;
+  transform: translateY(-8px) scale(0.96);
+  pointer-events: none;
+  transition: opacity 0.18s cubic-bezier(0.16, 1, 0.3, 1), transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dropdown-menu.show {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.dropdown-item:hover {
+  background: #F8FAFC;
+  color: var(--text-primary);
+}
+
+.dropdown-item.active {
+  background: #EFF6FF;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.dropdown-item-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dropdown-item-code {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #E2E8F0;
+  color: #475569;
+}
+
+.dropdown-item.active .dropdown-item-code {
+  background: #DBEAFE;
+  color: #1D4ED8;
+}
+
+.dropdown-item-text {
+  font-size: 0.82rem;
+}
+
+.dropdown-check {
+  width: 14px;
+  height: 14px;
+  color: var(--primary);
+  opacity: 0;
+  transform: scale(0.5);
+  transition: all 0.15s ease;
+}
+
+.dropdown-item.active .dropdown-check {
+  opacity: 1;
+  transform: scale(1);
 }
 
 /* ==========================================================================
@@ -1260,18 +1383,15 @@ input:disabled + .slider-round {
 /* ==========================================================================
    Responsive Adjustments
    ========================================================================== */
-@media (max-width: 800px) {
+@media (max-width: 480px) {
   .installer-window {
     min-height: auto;
   }
   .mode-grid {
     grid-template-columns: 1fr;
   }
-  .profiles-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
   .steps-nav {
-    padding: 12px 20px;
+    padding: 10px 16px;
   }
   .step-label {
     display: none;

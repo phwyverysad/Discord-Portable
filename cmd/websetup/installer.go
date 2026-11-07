@@ -137,7 +137,7 @@ func ExecuteInstallation(cfg InstallConfig, rootSourcePath string) error {
 	}
 
 	// Copy Icons
-	updateStatus(30, "กำลังคัดลอกชุดไอคอนสีทั้ง 12 สี...", false, "")
+	updateStatus(25, "กำลังคัดลอกชุดไอคอนสีทั้ง 12 สี...", false, "")
 	srcIcons := filepath.Join(rootSourcePath, "res", "icons")
 	dstIcons := filepath.Join(cfg.InstallDir, "res", "icons")
 	if _, err := os.Stat(srcIcons); err == nil {
@@ -145,18 +145,54 @@ func ExecuteInstallation(cfg InstallConfig, rootSourcePath string) error {
 	}
 
 	// Setup Launcher Binary in target
-	updateStatus(45, "กำลังติดตั้งตัวรัน Discord Portable...", false, "")
-	currentExe, _ := os.Executable()
-	targetLauncher := filepath.Join(cfg.InstallDir, "Discord-Portable.exe")
-	if currentExe != "" && filepath.Clean(currentExe) != filepath.Clean(targetLauncher) {
-		_ = copyFile(currentExe, targetLauncher)
+	updateStatus(35, "กำลังติดตั้งตัวรัน Discord Portable...", false, "")
+	srcLauncher := filepath.Join(rootSourcePath, "DiscordPTB-Portable.exe")
+	if _, err := os.Stat(srcLauncher); os.IsNotExist(err) {
+		srcLauncher = filepath.Join(rootSourcePath, "Discord-Portable.exe")
+	}
+	targetLauncher := filepath.Join(cfg.InstallDir, "DiscordPTB-Portable.exe")
+	if _, err := os.Stat(srcLauncher); err == nil {
+		_ = copyFile(srcLauncher, targetLauncher)
+		_ = copyFile(srcLauncher, filepath.Join(cfg.InstallDir, "Discord-Portable.exe"))
+	}
+
+	// Copy portapp.json configuration
+	srcPortapp := filepath.Join(rootSourcePath, "portapp.json")
+	if _, err := os.Stat(srcPortapp); err == nil {
+		_ = copyFile(srcPortapp, filepath.Join(cfg.InstallDir, "portapp.json"))
+	}
+
+	// Deploy Discord App Binaries into app/app-1.0.1231
+	updateStatus(50, "กำลังติดตั้งแพ็กเกจ Discord PTB ล่าสุด...", false, "")
+	dstAppDir := filepath.Join(cfg.InstallDir, "app", "app-1.0.1231")
+	srcAppDir := filepath.Join(rootSourcePath, "app", "app-1.0.1231")
+	if _, err := os.Stat(filepath.Join(srcAppDir, "DiscordPTB.exe")); err == nil {
+		_ = copyDir(srcAppDir, dstAppDir)
+	} else {
+		// Fallback from LocalAppData if available
+		localAppDir := filepath.Join(os.Getenv("LOCALAPPDATA"), "DiscordPTB", "app-1.0.1231")
+		if _, err := os.Stat(filepath.Join(localAppDir, "DiscordPTB.exe")); err == nil {
+			_ = copyDir(localAppDir, dstAppDir)
+		}
+	}
+
+	// Setup Vencord Client Mod
+	dstVencordApp := filepath.Join(dstAppDir, "resources", "app")
+	srcVencord := filepath.Join(rootSourcePath, "res", "vencord")
+	if _, err := os.Stat(srcVencord); err == nil {
+		_ = copyDir(srcVencord, dstVencordApp)
 	}
 
 	// Initialize Profiles
-	updateStatus(60, "กำลังสร้างโปรไฟล์และแยกพื้นที่ข้อมูล...", false, "")
+	updateStatus(70, "กำลังสร้างโปรไฟล์และแยกพื้นที่ข้อมูล...", false, "")
 	if len(cfg.Profiles) == 0 {
 		cfg.Profiles = []string{"01_yellow"}
 	}
+
+	// Setup roaming APPDATA settings.json for profile
+	roamingDir := filepath.Join(profilesDir, "discordptb")
+	_ = os.MkdirAll(roamingDir, 0700)
+	_ = os.WriteFile(filepath.Join(roamingDir, "settings.json"), []byte("{\n  \"SKIP_HOST_UPDATE\": true,\n  \"USE_PINNED_UPDATE_MANIFEST\": true\n}"), 0644)
 
 	desktopDir, _ := os.UserHomeDir()
 	desktopDir = filepath.Join(desktopDir, "Desktop")

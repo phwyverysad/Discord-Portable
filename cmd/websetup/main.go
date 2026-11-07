@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 	"unsafe"
@@ -15,21 +16,24 @@ import (
 )
 
 var (
-	kernel32Main         = syscall.NewLazyDLL("kernel32.dll")
-	user32Main           = syscall.NewLazyDLL("user32.dll")
-	procFreeConsole      = kernel32Main.NewProc("FreeConsole")
-	procRegisterClassExW = user32Main.NewProc("RegisterClassExW")
-	procCreateWindowExW  = user32Main.NewProc("CreateWindowExW")
-	procDefWindowProcW   = user32Main.NewProc("DefWindowProcW")
-	procUpdateWindowWin  = user32Main.NewProc("UpdateWindow")
-	procGetMessageW      = user32Main.NewProc("GetMessageW")
-	procTranslateMessage = user32Main.NewProc("TranslateMessage")
-	procDispatchMessageW = user32Main.NewProc("DispatchMessageW")
-	procPostQuitMessage  = user32Main.NewProc("PostQuitMessage")
-	procGetSystemMetrics = user32Main.NewProc("GetSystemMetrics")
-	procLoadCursorW      = user32Main.NewProc("LoadCursorW")
-	procSetCursor        = user32Main.NewProc("SetCursor")
-	procDestroyWindow    = user32Main.NewProc("DestroyWindow")
+	kernel32Main           = syscall.NewLazyDLL("kernel32.dll")
+	user32Main             = syscall.NewLazyDLL("user32.dll")
+	gdi32Main              = syscall.NewLazyDLL("gdi32.dll")
+	procFreeConsole        = kernel32Main.NewProc("FreeConsole")
+	procRegisterClassExW   = user32Main.NewProc("RegisterClassExW")
+	procCreateWindowExW    = user32Main.NewProc("CreateWindowExW")
+	procDefWindowProcW     = user32Main.NewProc("DefWindowProcW")
+	procUpdateWindowWin    = user32Main.NewProc("UpdateWindow")
+	procGetMessageW        = user32Main.NewProc("GetMessageW")
+	procTranslateMessage   = user32Main.NewProc("TranslateMessage")
+	procDispatchMessageW   = user32Main.NewProc("DispatchMessageW")
+	procPostQuitMessage    = user32Main.NewProc("PostQuitMessage")
+	procGetSystemMetrics   = user32Main.NewProc("GetSystemMetrics")
+	procLoadCursorW        = user32Main.NewProc("LoadCursorW")
+	procSetCursor          = user32Main.NewProc("SetCursor")
+	procDestroyWindow      = user32Main.NewProc("DestroyWindow")
+	procCreateRoundRectRgn = gdi32Main.NewProc("CreateRoundRectRgn")
+	procSetWindowRgn       = user32Main.NewProc("SetWindowRgn")
 )
 
 type WNDCLASSEXW struct {
@@ -136,6 +140,19 @@ func main() {
 		rootPath = filepath.Dir(filepath.Dir(rootPath))
 	}
 
+	// If invoked with profile flags, forward to DiscordPTB-Portable.exe
+	for _, arg := range os.Args[1:] {
+		if strings.HasPrefix(arg, "--profile=") || arg == "--multi-instance" {
+			launcherPath := filepath.Join(rootPath, "DiscordPTB-Portable.exe")
+			if _, err := os.Stat(launcherPath); err == nil {
+				cmd := exec.Command(launcherPath, os.Args[1:]...)
+				cmd.Dir = rootPath
+				_ = cmd.Start()
+				return
+			}
+		}
+	}
+
 	server, err := NewSetupServer(rootPath)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed initializing WebSetup server")
@@ -190,6 +207,12 @@ func main() {
 	)
 
 	if hwnd != 0 {
+		// Apply smooth rounded window region (radius 14px -> diameter 28)
+		rgn, _, _ := procCreateRoundRectRgn.Call(0, 0, uintptr(width+1), uintptr(height+1), 28, 28)
+		if rgn != 0 {
+			procSetWindowRgn.Call(hwnd, rgn, 1)
+		}
+
 		server.SetWindowHwnd(hwnd)
 
 		userDataFolder := filepath.Join(os.Getenv("TEMP"), "discord_websetup_wv2")

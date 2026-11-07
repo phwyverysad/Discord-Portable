@@ -13,3 +13,6 @@
 # Agent & temporary files
 /.agent
 /test_*.exe
+/app/
+/data/
+/log/

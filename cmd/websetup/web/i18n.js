@@ -135,6 +135,18 @@ class I18nManager {
     this.currentLang = lang;
     this.applyLanguage();
 
+    const curLabel = document.getElementById("current-lang-text");
+    if (curLabel) {
+      curLabel.textContent = lang === "en" ? "English" : "ไทย";
+    }
+    const dropdownItems = document.querySelectorAll("#lang-dropdown-menu .dropdown-item");
+    dropdownItems.forEach((item) => {
+      const itemLang = item.getAttribute("data-lang");
+      const isActive = itemLang === lang;
+      item.classList.toggle("active", isActive);
+      item.setAttribute("aria-selected", isActive ? "true" : "false");
+    });
+
     const btnTh = document.getElementById("lang-btn-th");
     const btnEn = document.getElementById("lang-btn-en");
     if (btnTh && btnEn) {

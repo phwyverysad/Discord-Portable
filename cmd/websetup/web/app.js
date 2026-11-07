@@ -76,21 +76,79 @@
   function initI18n() {
     window.I18N.init();
 
-    const btnTh = document.getElementById("lang-btn-th");
-    const btnEn = document.getElementById("lang-btn-en");
+    // Custom Language Dropdown Wiring
+    const dropdown = document.getElementById("lang-dropdown");
+    const trigger = document.getElementById("lang-dropdown-trigger");
+    const menu = document.getElementById("lang-dropdown-menu");
+    const currentLangText = document.getElementById("current-lang-text");
+    const items = menu ? menu.querySelectorAll(".dropdown-item") : [];
 
-    if (btnTh) {
-      btnTh.addEventListener("click", () => {
-        window.I18N.setLanguage("th");
+    function updateDropdownUI(lang) {
+      if (currentLangText) {
+        currentLangText.textContent = lang === "en" ? "English" : "ไทย";
+      }
+      items.forEach((item) => {
+        const itemLang = item.getAttribute("data-lang");
+        const isActive = itemLang === lang;
+        item.classList.toggle("active", isActive);
+        item.setAttribute("aria-selected", isActive ? "true" : "false");
       });
     }
-    if (btnEn) {
-      btnEn.addEventListener("click", () => {
-        window.I18N.setLanguage("en");
+
+    if (trigger && menu) {
+      trigger.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const isOpen = menu.classList.contains("show");
+        if (isOpen) {
+          menu.classList.remove("show");
+          trigger.classList.remove("open");
+          trigger.setAttribute("aria-expanded", "false");
+        } else {
+          menu.classList.add("show");
+          trigger.classList.add("open");
+          trigger.setAttribute("aria-expanded", "true");
+        }
+      });
+
+      items.forEach((item) => {
+        item.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const selectedLang = item.getAttribute("data-lang");
+          if (selectedLang) {
+            window.I18N.setLanguage(selectedLang);
+            updateDropdownUI(selectedLang);
+          }
+          menu.classList.remove("show");
+          trigger.classList.remove("open");
+          trigger.setAttribute("aria-expanded", "false");
+        });
+      });
+
+      // Close on click outside
+      document.addEventListener("click", (e) => {
+        if (dropdown && !dropdown.contains(e.target)) {
+          menu.classList.remove("show");
+          trigger.classList.remove("open");
+          trigger.setAttribute("aria-expanded", "false");
+        }
+      });
+
+      // Close on Escape key
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          menu.classList.remove("show");
+          trigger.classList.remove("open");
+          trigger.setAttribute("aria-expanded", "false");
+        }
       });
     }
 
-    window.addEventListener("languageChanged", () => {
+    const current = window.I18N.currentLang || "th";
+    updateDropdownUI(current);
+
+    window.addEventListener("languageChanged", (e) => {
+      const newLang = e.detail?.lang || window.I18N.currentLang || "th";
+      updateDropdownUI(newLang);
       renderProfiles();
       updateCounter();
     });
@@ -158,7 +216,7 @@
       let startY = 0;
 
       elements.windowHeader.addEventListener("mousedown", (e) => {
-        if (e.target.closest("button, input, select, a, .win-btn, .lang-btn")) return;
+        if (e.target.closest("button, input, select, a, .win-btn, .lang-btn, .custom-dropdown, .dropdown-trigger, .dropdown-menu")) return;
         isDragging = true;
         startX = e.screenX;
         startY = e.screenY;

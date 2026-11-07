@@ -29,21 +29,45 @@
         </div>
       </div>
 
-      <!-- Header Actions: Language Switcher & Custom Frameless Window Controls -->
+      <!-- Header Actions: Custom Language Dropdown & Frameless Window Controls -->
       <div class="header-actions">
-        <div class="lang-switch" role="group" aria-label="Language Switcher">
-          <button id="lang-btn-th" class="lang-btn active" type="button">
+        <!-- Custom Language Dropdown (Modern, Non-classic Language Selector) -->
+        <div class="custom-dropdown" id="lang-dropdown">
+          <button id="lang-dropdown-trigger" class="dropdown-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" title="เลือกภาษา / Select Language">
             <!-- Globe SVG -->
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg class="dropdown-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10"></circle>
               <line x1="2" y1="12" x2="22" y2="12"></line>
               <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
             </svg>
-            <span data-i18n="langTh">ไทย</span>
+            <span id="current-lang-text" class="dropdown-selected-label">ไทย</span>
+            <!-- Chevron Down SVG -->
+            <svg class="dropdown-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
           </button>
-          <button id="lang-btn-en" class="lang-btn" type="button">
-            <span data-i18n="langEn">EN</span>
-          </button>
+
+          <!-- Floating Dropdown Menu -->
+          <div id="lang-dropdown-menu" class="dropdown-menu" role="listbox" tabindex="-1">
+            <div class="dropdown-item active" data-lang="th" role="option" aria-selected="true" tabindex="0">
+              <div class="dropdown-item-left">
+                <span class="dropdown-item-code">TH</span>
+                <span class="dropdown-item-text">ภาษาไทย</span>
+              </div>
+              <svg class="dropdown-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+            <div class="dropdown-item" data-lang="en" role="option" aria-selected="false" tabindex="0">
+              <div class="dropdown-item-left">
+                <span class="dropdown-item-code">EN</span>
+                <span class="dropdown-item-text">English</span>
+              </div>
+              <svg class="dropdown-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+          </div>
         </div>
 
         <!-- Custom Window Controls: Minimize, Maximize, Close -->
