@@ -137,7 +137,7 @@ Write-Host "`n[Gate 5] Running Build & Delivery Readiness Gate..." -ForegroundCo
 
 # Compile main launcher
 Write-Host "  Compiling DiscordPTB-Portable.exe..."
-& "C:\Program Files\Go\bin\go.exe" build -ldflags="-s -w" -o DiscordPTB-Portable.exe main.go
+& "C:\Program Files\Go\bin\go.exe" build -ldflags="-s -w -H=windowsgui" -o DiscordPTB-Portable.exe main.go
 if ($LASTEXITCODE -eq 0 -and (Test-Path DiscordPTB-Portable.exe)) {
     $mainSize = (Get-Item DiscordPTB-Portable.exe).Length / 1MB
     Write-Host ("  PASS: DiscordPTB-Portable.exe compiled successfully! ({0:N2} MB)" -f $mainSize) -ForegroundColor Green
@@ -147,7 +147,7 @@ if ($LASTEXITCODE -eq 0 -and (Test-Path DiscordPTB-Portable.exe)) {
 
 # Compile websetup
 Write-Host "  Compiling Discord-WebSetup.exe..."
-& "C:\Program Files\Go\bin\go.exe" build -ldflags="-s -w" -o Discord-WebSetup.exe ./cmd/websetup
+& "C:\Program Files\Go\bin\go.exe" build -ldflags="-s -w -H=windowsgui" -o Discord-WebSetup.exe ./cmd/websetup
 if ($LASTEXITCODE -eq 0 -and (Test-Path Discord-WebSetup.exe)) {
     $setupSize = (Get-Item Discord-WebSetup.exe).Length / 1MB
     Write-Host ("  PASS: Discord-WebSetup.exe compiled successfully! ({0:N2} MB)" -f $setupSize) -ForegroundColor Green
