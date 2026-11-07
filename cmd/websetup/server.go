@@ -10,11 +10,52 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
+	"syscall"
+	"time"
+	"unsafe"
 
 	"github.com/portapps/discord-ptb-portable/pkg/backup"
 	"github.com/portapps/portapps/v3/pkg/log"
+)
+
+var (
+	user32Win               = syscall.NewLazyDLL("user32.dll")
+	procShowWindowWin       = user32Win.NewProc("ShowWindow")
+	procPostMessageWWin     = user32Win.NewProc("PostMessageW")
+	procGetWindowRectWin    = user32Win.NewProc("GetWindowRect")
+	procSetWindowPosWin     = user32Win.NewProc("SetWindowPos")
+	procGetWindowPlacementW = user32Win.NewProc("GetWindowPlacement")
+)
+
+type RECT struct {
+	Left, Top, Right, Bottom int32
+}
+
+type POINT struct {
+	X, Y int32
+}
+
+type WINDOWPLACEMENT struct {
+	Length           uint32
+	Flags            uint32
+	ShowCmd          uint32
+	PtMinPosition    POINT
+	PtMaxPosition    POINT
+	RcNormalPosition RECT
+}
+
+const (
+	SW_HIDE_CMD          = 0
+	SW_SHOWNORMAL_CMD    = 1
+	SW_SHOWMINIMIZED_CMD = 2
+	SW_MAXIMIZE_CMD      = 3
+	SW_RESTORE_CMD       = 9
+	WM_CLOSE_CMD         = 0x0010
+	SWP_NOSIZE_CMD       = 0x0001
+	SWP_NOZORDER_CMD     = 0x0004
 )
 
 //go:embed web/*
@@ -48,11 +89,13 @@ var defaultProfiles = []ProfileItem{
 }
 
 type SetupServer struct {
-	listener net.Listener
-	port     int
-	rootPath string
-	srv      *http.Server
-	stopOnce sync.Once
+	listener    net.Listener
+	port        int
+	rootPath    string
+	srv         *http.Server
+	stopOnce    sync.Once
+	windowHwnd  uintptr
+	windowMutex sync.RWMutex
 }
 
 func NewSetupServer(rootSourcePath string) (*SetupServer, error) {
@@ -89,6 +132,10 @@ func NewSetupServer(rootSourcePath string) (*SetupServer, error) {
 	mux.HandleFunc("/api/restore", s.handleRestore)
 	mux.HandleFunc("/api/launch", s.handleLaunch)
 	mux.HandleFunc("/api/exit", s.handleExit)
+	mux.HandleFunc("/api/window/minimize", s.handleWindowMinimize)
+	mux.HandleFunc("/api/window/maximize", s.handleWindowMaximize)
+	mux.HandleFunc("/api/window/close", s.handleWindowClose)
+	mux.HandleFunc("/api/window/move", s.handleWindowMove)
 
 	s.srv = &http.Server{Handler: mux}
 	return s, nil
@@ -192,6 +239,72 @@ func (s *SetupServer) handleBrowse(w http.ResponseWriter, r *http.Request) {
 func (s *SetupServer) handleLaunch(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]bool{"launched": true})
+}
+
+func (s *SetupServer) SetWindowHwnd(hwnd uintptr) {
+	s.windowMutex.Lock()
+	defer s.windowMutex.Unlock()
+	s.windowHwnd = hwnd
+}
+
+func (s *SetupServer) GetWindowHwnd() uintptr {
+	s.windowMutex.RLock()
+	defer s.windowMutex.RUnlock()
+	return s.windowHwnd
+}
+
+func (s *SetupServer) handleWindowMinimize(w http.ResponseWriter, r *http.Request) {
+	hwnd := s.GetWindowHwnd()
+	if hwnd != 0 {
+		procShowWindowWin.Call(hwnd, SW_SHOWMINIMIZED_CMD)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]bool{"ok": true})
+}
+
+func (s *SetupServer) handleWindowMaximize(w http.ResponseWriter, r *http.Request) {
+	hwnd := s.GetWindowHwnd()
+	if hwnd != 0 {
+		var placement WINDOWPLACEMENT
+		placement.Length = uint32(unsafe.Sizeof(placement))
+		procGetWindowPlacementW.Call(hwnd, uintptr(unsafe.Pointer(&placement)))
+		if placement.ShowCmd == SW_MAXIMIZE_CMD {
+			procShowWindowWin.Call(hwnd, SW_RESTORE_CMD)
+		} else {
+			procShowWindowWin.Call(hwnd, SW_MAXIMIZE_CMD)
+		}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]bool{"ok": true})
+}
+
+func (s *SetupServer) handleWindowClose(w http.ResponseWriter, r *http.Request) {
+	hwnd := s.GetWindowHwnd()
+	if hwnd != 0 {
+		procPostMessageWWin.Call(hwnd, WM_CLOSE_CMD, 0, 0)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]bool{"ok": true})
+	go func() {
+		time.Sleep(300 * time.Millisecond)
+		os.Exit(0)
+	}()
+}
+
+func (s *SetupServer) handleWindowMove(w http.ResponseWriter, r *http.Request) {
+	hwnd := s.GetWindowHwnd()
+	dxStr := r.URL.Query().Get("dx")
+	dyStr := r.URL.Query().Get("dy")
+	dx, _ := strconv.Atoi(dxStr)
+	dy, _ := strconv.Atoi(dyStr)
+
+	if hwnd != 0 && (dx != 0 || dy != 0) {
+		var rect RECT
+		procGetWindowRectWin.Call(hwnd, uintptr(unsafe.Pointer(&rect)))
+		procSetWindowPosWin.Call(hwnd, 0, uintptr(rect.Left+int32(dx)), uintptr(rect.Top+int32(dy)), 0, 0, SWP_NOSIZE_CMD|SWP_NOZORDER_CMD)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]bool{"ok": true})
 }
 
 func (s *SetupServer) handleExit(w http.ResponseWriter, r *http.Request) {

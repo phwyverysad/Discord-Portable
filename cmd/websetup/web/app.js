@@ -66,6 +66,11 @@
 
     elements.btnBack = document.getElementById("btn-back");
     elements.btnNext = document.getElementById("btn-next");
+
+    elements.windowHeader = document.querySelector(".window-header");
+    elements.winBtnMinimize = document.getElementById("win-btn-minimize");
+    elements.winBtnMaximize = document.getElementById("win-btn-maximize");
+    elements.winBtnClose = document.getElementById("win-btn-close");
   }
 
   function initI18n() {
@@ -124,6 +129,60 @@
 
     if (elements.btnFinish) {
       elements.btnFinish.addEventListener("click", handleFinish);
+    }
+
+    // Custom Frameless Window Controls
+    if (elements.winBtnMinimize) {
+      elements.winBtnMinimize.addEventListener("click", () => {
+        fetch("/api/window/minimize", { method: "POST" }).catch(() => {});
+      });
+    }
+
+    if (elements.winBtnMaximize) {
+      elements.winBtnMaximize.addEventListener("click", () => {
+        fetch("/api/window/maximize", { method: "POST" }).catch(() => {});
+      });
+    }
+
+    if (elements.winBtnClose) {
+      elements.winBtnClose.addEventListener("click", () => {
+        fetch("/api/window/close", { method: "POST" }).catch(() => {});
+        window.close();
+      });
+    }
+
+    // Draggable Window Header
+    if (elements.windowHeader) {
+      let isDragging = false;
+      let startX = 0;
+      let startY = 0;
+
+      elements.windowHeader.addEventListener("mousedown", (e) => {
+        if (e.target.closest("button, input, select, a, .win-btn, .lang-btn")) return;
+        isDragging = true;
+        startX = e.screenX;
+        startY = e.screenY;
+
+        const onMouseMove = (moveEvent) => {
+          if (!isDragging) return;
+          const dx = moveEvent.screenX - startX;
+          const dy = moveEvent.screenY - startY;
+          if (dx !== 0 || dy !== 0) {
+            startX = moveEvent.screenX;
+            startY = moveEvent.screenY;
+            fetch(`/api/window/move?dx=${dx}&dy=${dy}`, { method: "POST" }).catch(() => {});
+          }
+        };
+
+        const onMouseUp = () => {
+          isDragging = false;
+          window.removeEventListener("mousemove", onMouseMove);
+          window.removeEventListener("mouseup", onMouseUp);
+        };
+
+        window.addEventListener("mousemove", onMouseMove);
+        window.addEventListener("mouseup", onMouseUp);
+      });
     }
   }
 

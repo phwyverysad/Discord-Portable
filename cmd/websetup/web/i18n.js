@@ -9,6 +9,9 @@ const translations = {
     appTitle: "Discord PTB Portable",
     langTh: "ไทย",
     langEn: "EN",
+    winMinimize: "ย่อหน้าต่าง",
+    winMaximize: "ขยายหน้าต่าง",
+    winClose: "ปิด",
 
     // Step Indicator
     step1Title: "โฟลเดอร์ติดตั้ง",
@@ -64,6 +67,9 @@ const translations = {
     appTitle: "Discord PTB Portable",
     langTh: "TH",
     langEn: "English",
+    winMinimize: "Minimize",
+    winMaximize: "Maximize",
+    winClose: "Close",
 
     // Step Indicator
     step1Title: "Install Path",

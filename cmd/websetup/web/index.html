@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Discord PTB Portable + Vencord WebSetup</title>
+  <title>Discord PTB Portable - WebSetup</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -25,7 +25,7 @@
         </div>
       </div>
 
-      <!-- Header Actions: Language Switcher -->
+      <!-- Header Actions: Language Switcher & Custom Frameless Window Controls -->
       <div class="header-actions">
         <div class="lang-switch" role="group" aria-label="Language Switcher">
           <button id="lang-btn-th" class="lang-btn active" type="button">
@@ -39,6 +39,26 @@
           </button>
           <button id="lang-btn-en" class="lang-btn" type="button">
             <span data-i18n="langEn">EN</span>
+          </button>
+        </div>
+
+        <!-- Custom Window Controls: Minimize, Maximize, Close -->
+        <div class="window-controls" role="group" aria-label="Window Controls">
+          <button id="win-btn-minimize" class="win-btn win-btn-minimize" type="button" title="ย่อหน้าต่าง" aria-label="Minimize">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </button>
+          <button id="win-btn-maximize" class="win-btn win-btn-maximize" type="button" title="ขยายหน้าต่าง" aria-label="Maximize">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+            </svg>
+          </button>
+          <button id="win-btn-close" class="win-btn win-btn-close" type="button" title="ปิด" aria-label="Close">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
           </button>
         </div>
       </div>
