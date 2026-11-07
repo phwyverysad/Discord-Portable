@@ -21,6 +21,7 @@ import (
 	"github.com/jchv/go-webview2/pkg/edge"
 	"github.com/portapps/discord-ptb-portable/pkg/security"
 	"github.com/portapps/discord-ptb-portable/pkg/shell"
+	"github.com/portapps/discord-ptb-portable/pkg/trayanim"
 	"golang.org/x/sys/windows"
 )
 
@@ -389,6 +390,8 @@ del "%%~f0" >nul 2>&1
 }
 
 func (s *ManagerServer) handleExecute(w http.ResponseWriter, r *http.Request) {
+	trayanim.GetGlobalAnimator().StartAnimation("scuba", 60)
+	defer trayanim.GetGlobalAnimator().StopAnimation()
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -484,6 +487,22 @@ func (s *ManagerServer) handleExecute(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Error(w, "Invalid action", http.StatusBadRequest)
+}
+
+
+func (s *ManagerServer) handleTrayAnimate(w http.ResponseWriter, r *http.Request) {
+	animType := r.URL.Query().Get("type")
+	intervalStr := r.URL.Query().Get("interval")
+	interval, _ := strconv.Atoi(intervalStr)
+	trayanim.GetGlobalAnimator().StartAnimation(animType, interval)
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]bool{"ok": true})
+}
+
+func (s *ManagerServer) handleTrayStop(w http.ResponseWriter, r *http.Request) {
+	trayanim.GetGlobalAnimator().StopAnimation()
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]bool{"ok": true})
 }
 
 func (s *ManagerServer) handleExit(w http.ResponseWriter, r *http.Request) {
@@ -653,6 +672,8 @@ func main() {
 	mux.HandleFunc("/api/exit", server.handleExit)
 	mux.HandleFunc("/api/window/minimize", server.handleWindowMinimize)
 	mux.HandleFunc("/api/window/move", server.handleWindowMove)
+	mux.HandleFunc("/api/tray/animate", server.handleTrayAnimate)
+	mux.HandleFunc("/api/tray/stop", server.handleTrayStop)
 
 	server.srv = &http.Server{Handler: mux}
 	go func() {
@@ -712,6 +733,16 @@ func main() {
 	server.windowMutex.Lock()
 	server.windowHwnd = hwnd
 	server.windowMutex.Unlock()
+
+	animator := trayanim.GetGlobalAnimator()
+	_ = animator.Init(hwnd, "Discord PTB - Profile Manager")
+	_ = animator.AddTray()
+	defer animator.RemoveTray()
+
+	if defIcon := animator.DefaultIcon(); defIcon != 0 {
+		user32DLL.NewProc("SendMessageW").Call(hwnd, 0x0080, 0, defIcon)
+		user32DLL.NewProc("SendMessageW").Call(hwnd, 0x0080, 1, defIcon)
+	}
 
 	userDataFolder := filepath.Join(os.TempDir(), "DiscordProfileManager_WebView2")
 	_ = os.MkdirAll(userDataFolder, 0700)

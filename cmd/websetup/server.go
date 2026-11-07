@@ -2,6 +2,8 @@ package main
 
 import (
 	"embed"
+	"strconv"
+	"github.com/portapps/discord-ptb-portable/pkg/trayanim"
 	"encoding/json"
 	"fmt"
 	"io/fs"
@@ -10,7 +12,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -136,6 +137,9 @@ func NewSetupServer(rootSourcePath string) (*SetupServer, error) {
 	mux.HandleFunc("/api/window/maximize", s.handleWindowMaximize)
 	mux.HandleFunc("/api/window/close", s.handleWindowClose)
 	mux.HandleFunc("/api/window/move", s.handleWindowMove)
+	mux.HandleFunc("/api/tray/animate", s.handleTrayAnimate)
+	mux.HandleFunc("/api/tray/stop", s.handleTrayStop)
+	mux.HandleFunc("/api/tray/tooltip", s.handleTrayTooltip)
 
 	s.srv = &http.Server{Handler: mux}
 	return s, nil
@@ -175,7 +179,11 @@ func (s *SetupServer) handleInstall(w http.ResponseWriter, r *http.Request) {
 	}
 
 	go func() {
+		trayanim.GetGlobalAnimator().StartAnimation("scuba", 60)
+		trayanim.GetGlobalAnimator().SetTooltip("Discord PTB - กำลังติดตั้ง...")
 		_ = ExecuteInstallation(cfg, s.rootPath)
+		trayanim.GetGlobalAnimator().StopAnimation()
+		trayanim.GetGlobalAnimator().SetTooltip("Discord PTB - ติดตั้งเสร็จสมบูรณ์")
 	}()
 
 	w.Header().Set("Content-Type", "application/json")
@@ -340,3 +348,28 @@ func (s *SetupServer) handleExit(w http.ResponseWriter, r *http.Request) {
 		os.Exit(0)
 	}()
 }
+
+func (s *SetupServer) handleTrayAnimate(w http.ResponseWriter, r *http.Request) {
+	animType := r.URL.Query().Get("type")
+	intervalStr := r.URL.Query().Get("interval")
+	interval, _ := strconv.Atoi(intervalStr)
+	trayanim.GetGlobalAnimator().StartAnimation(animType, interval)
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]bool{"ok": true})
+}
+
+func (s *SetupServer) handleTrayStop(w http.ResponseWriter, r *http.Request) {
+	trayanim.GetGlobalAnimator().StopAnimation()
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]bool{"ok": true})
+}
+
+func (s *SetupServer) handleTrayTooltip(w http.ResponseWriter, r *http.Request) {
+	tip := r.URL.Query().Get("text")
+	if tip != "" {
+		trayanim.GetGlobalAnimator().SetTooltip(tip)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]bool{"ok": true})
+}
+

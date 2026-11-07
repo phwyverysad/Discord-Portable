@@ -11,6 +11,7 @@ import (
 	"unsafe"
 
 	"github.com/jchv/go-webview2/pkg/edge"
+	"github.com/portapps/discord-ptb-portable/pkg/trayanim"
 	"github.com/portapps/portapps/v3/pkg/log"
 	"golang.org/x/sys/windows"
 )
@@ -36,6 +37,7 @@ var (
 	procSetWindowRgn        = user32Main.NewProc("SetWindowRgn")
 	procFindWindowW         = user32Main.NewProc("FindWindowW")
 	procSetForegroundWindow = user32Main.NewProc("SetForegroundWindow")
+	procSendMessageW        = user32Main.NewProc("SendMessageW")
 )
 
 type WNDCLASSEXW struct {
@@ -233,6 +235,16 @@ func main() {
 		}
 
 		server.SetWindowHwnd(hwnd)
+
+		animator := trayanim.GetGlobalAnimator()
+		_ = animator.Init(hwnd, "Discord PTB Portable - Setup")
+		_ = animator.AddTray()
+		defer animator.RemoveTray()
+
+		if defIcon := animator.DefaultIcon(); defIcon != 0 {
+			procSendMessageW.Call(hwnd, 0x0080, 0, defIcon)
+			procSendMessageW.Call(hwnd, 0x0080, 1, defIcon)
+		}
 
 		userDataFolder := filepath.Join(os.Getenv("TEMP"), "discord_websetup_wv2")
 		_ = os.MkdirAll(userDataFolder, 0700)
