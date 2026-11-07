@@ -1,0 +1,152 @@
+package main
+
+//go:generate go tool goversioninfo -icon=res/papp.ico -manifest=res/papp.manifest
+
+import (
+	_ "embed"
+	"encoding/json"
+	"io"
+	"os"
+	"path/filepath"
+	"strings"
+
+	"github.com/portapps/portapps/v3"
+	"github.com/portapps/portapps/v3/pkg/files"
+	"github.com/portapps/portapps/v3/pkg/log"
+	"github.com/portapps/portapps/v3/pkg/registry"
+	"github.com/portapps/portapps/v3/pkg/shortcut"
+)
+
+//go:embed res/DiscordPTB.lnk
+var defaultShortcut []byte
+
+//go:embed res/pinned_update.json
+var pinnedUpdate []byte
+
+type config struct {
+	Cleanup bool `yaml:"cleanup" mapstructure:"cleanup"`
+}
+
+var (
+	app *portapps.App
+	cfg *config
+)
+
+func init() {
+	var err error
+
+	// Default config
+	cfg = &config{
+		Cleanup: false,
+	}
+
+	// Init app
+	if app, err = portapps.NewWithCfg("discord-ptb-portable", "DiscordPTB", cfg); err != nil {
+		log.Fatal().Err(err).Msg("Cannot initialize application. See log file for more info.")
+	}
+}
+
+func main() {
+	if err := os.MkdirAll(app.DataPath, 0o755); err != nil {
+		log.Fatal().Err(err).Msg("Cannot create data path")
+	}
+	electronAppPath := app.ElectronAppPath()
+
+	app.Process = filepath.Join(electronAppPath, "DiscordPTB.exe")
+	app.Args = []string{
+		"--user-data-dir=" + app.DataPath,
+	}
+	app.WorkingDir = electronAppPath
+
+	// Cleanup on exit
+	if cfg.Cleanup {
+		defer func() {
+			regKey := registry.Key{
+				Key:  `HKCU\SOFTWARE\DiscordPTB`,
+				Arch: "32",
+			}
+			if regKey.Exists() {
+				if err := regKey.Delete(true); err != nil {
+					log.Error().Err(err).Msg("Cannot remove registry key")
+				}
+			}
+			files.Cleanup(
+				filepath.Join(os.Getenv("APPDATA"), "discordptb"),
+				filepath.Join(os.Getenv("TEMP"), "Discord Crashes"),
+			)
+		}()
+	}
+
+	// Update settings
+	settingsPath := filepath.Join(app.DataPath, "settings.json")
+	if _, err := os.Stat(settingsPath); err == nil {
+		log.Info().Msg("Update settings...")
+		rawSettings, err := os.ReadFile(settingsPath)
+		if err == nil {
+			jsonMapSettings := make(map[string]interface{})
+			if err = json.Unmarshal(rawSettings, &jsonMapSettings); err != nil {
+				log.Error().Err(err).Msg("Settings unmarshal")
+			}
+			log.Info().Interface("settings", jsonMapSettings).Msg("Current settings")
+
+			jsonMapSettings["SKIP_HOST_UPDATE"] = true
+			jsonMapSettings["USE_PINNED_UPDATE_MANIFEST"] = true
+			log.Info().Interface("settings", jsonMapSettings).Msg("New settings")
+
+			jsonSettings, err := json.Marshal(jsonMapSettings)
+			if err != nil {
+				log.Error().Err(err).Msg("Settings marshal")
+			}
+			err = os.WriteFile(settingsPath, jsonSettings, 0644)
+			if err != nil {
+				log.Error().Err(err).Msg("Write settings")
+			}
+		}
+	} else {
+		fo, err := os.Create(settingsPath)
+		if err != nil {
+			log.Error().Err(err).Msg("Cannot create settings.json")
+		}
+		defer fo.Close()
+		if _, err = io.Copy(fo, strings.NewReader(`{
+  "SKIP_HOST_UPDATE": true,
+  "USE_PINNED_UPDATE_MANIFEST": true
+}`)); err != nil {
+			log.Error().Err(err).Msg("Cannot write to settings.json")
+		}
+	}
+
+	// Copy pinned_update.json
+	err := os.WriteFile(filepath.Join(app.DataPath, "pinned_update.json"), pinnedUpdate, 0644)
+	if err != nil {
+		log.Error().Err(err).Msg("Cannot write pinned_update.json")
+	}
+
+	// Copy default shortcut
+	shortcutPath := filepath.Join(files.StartMenuPath(), "Discord PTB Portable.lnk")
+	err = os.WriteFile(shortcutPath, defaultShortcut, 0644)
+	if err != nil {
+		log.Error().Err(err).Msg("Cannot write default shortcut")
+	}
+
+	// Update default shortcut
+	err = shortcut.Create(shortcut.Shortcut{
+		ShortcutPath:     shortcutPath,
+		TargetPath:       app.Process,
+		Arguments:        shortcut.Property{Clear: true},
+		Description:      shortcut.Property{Value: "Discord PTB Portable by Portapps"},
+		IconLocation:     shortcut.Property{Value: app.Process},
+		WorkingDirectory: shortcut.Property{Value: app.AppPath},
+	})
+	if err != nil {
+		log.Error().Err(err).Msg("Cannot create shortcut")
+	}
+	defer func() {
+		if err := os.Remove(shortcutPath); err != nil {
+			log.Error().Err(err).Msg("Cannot remove shortcut")
+		}
+	}()
+
+	defer app.Close()
+	app.Launch(os.Args[1:])
+}

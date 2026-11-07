@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="discord-ptb" basedir=".">
+
+  <dirname property="app.basedir" file="${ant.file.discord-ptb}"/>
+  <property name="build.properties" value="${app.basedir}/build.properties"/>
+  <property file="${build.properties}"/>
+
+  <!-- Load Portapps core build -->
+  <property name="core.basedir" location="${app.basedir}\${core.dir}"/>
+  <fail unless="core.basedir" message="Core directory '${core.basedir}' not found in ${core.basedir}"/>
+  <echo message="Core found in ${core.basedir}" level="debug"/>
+
+  <!-- Import build-app.xml  -->
+  <import file="${core.basedir}\.build\build-app.xml"/>
+
+  <!-- Targets -->
+  <target name="release" depends="release.app" description="Release"/>
+
+  <target name="prepare" depends="load.lib.asar">
+    <echo message="Extracting app.asar..."/>
+    <exec executable="asar.cmd" failonerror="true" dir="${build.path}\${papp.folder}\app-${app.version}\resources">
+      <arg value="extract"/>
+      <arg value="app.asar"/>
+      <arg value="app"/>
+    </exec>
+
+    <echo message="Replacing in app.asar..."/>
+    <assertfile file="${build.path}\${papp.folder}\app-${app.version}\resources\app\${electron.appasar.file}"/>
+    <replace file="${build.path}\${papp.folder}\app-${app.version}\resources\app\${electron.appasar.file}" failOnNoReplacements="true">
+      <replacefilter token="${electron.appasar.search}" value="${electron.appasar.replace}"/>
+    </replace>
+    <assertfile file="${build.path}\${papp.folder}\app-${app.version}\resources\app\${electron.appasar.file2}"/>
+    <replace file="${build.path}\${papp.folder}\app-${app.version}\resources\app\${electron.appasar.file2}" failOnNoReplacements="true">
+      <replacefilter token="${electron.appasar.search2}" value="${electron.appasar.replace2}"/>
+    </replace>
+    <assertfile file="${build.path}\${papp.folder}\app-${app.version}\installer.db"/>
+    <move file="${build.path}\${papp.folder}\app-${app.version}\installer.db" tofile="${build.path}\${papp.folder}\installer.db"/>
+
+    <echo message="Removing app.asar..."/>
+    <delete file="${build.path}\${papp.folder}\app-${app.version}\resources\app.asar"/>
+  </target>
+
+</project>
