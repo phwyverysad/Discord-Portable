@@ -61,13 +61,19 @@ type NOTIFYICONDATAW struct {
 	HBalloonIcon      uintptr
 }
 
-// Animator manages animated tray icons and window icon synchronization.
+// Frame holds both small (tray/titlebar) and big (taskbar/Alt-Tab) HICON handles.
+type Frame struct {
+	Small uintptr // 16x16 / 24x24
+	Big   uintptr // 32x32 / 48x48
+}
+
+// Animator manages animated tray icons and window taskbar/titlebar synchronization.
 type Animator struct {
 	hwnd           uintptr
 	uid            uint32
-	defaultIcon    uintptr
+	defaultIcon    Frame
 	currentAnim    string
-	frames         map[string][]uintptr
+	frames         map[string][]Frame
 	ticker         *time.Ticker
 	stopChan       chan struct{}
 	mu             sync.Mutex
@@ -76,7 +82,6 @@ type Animator struct {
 	syncWindowIcon bool
 }
 
-// Global default animator instance for easy application-wide access.
 var (
 	GlobalAnimator *Animator
 	animatorOnce   sync.Once
@@ -94,12 +99,12 @@ func GetGlobalAnimator() *Animator {
 func NewAnimator(uid uint32) *Animator {
 	return &Animator{
 		uid:            uid,
-		frames:         make(map[string][]uintptr),
+		frames:         make(map[string][]Frame),
 		syncWindowIcon: true,
 	}
 }
 
-// Init extracts embedded animation frames into a local cache directory and initializes HICON slices.
+// Init extracts embedded animation frames into a local cache directory and loads HICON handles.
 func (a *Animator) Init(hwnd uintptr, defaultTooltip string) error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -110,7 +115,6 @@ func (a *Animator) Init(hwnd uintptr, defaultTooltip string) error {
 	cacheDir := filepath.Join(os.TempDir(), "discord_trayanim_cache")
 	_ = os.MkdirAll(cacheDir, 0755)
 
-	// Load categories: scuba, sync, recording using path.Join (forward slashes for embed.FS)
 	categories := []string{"scuba", "sync", "recording"}
 	for _, cat := range categories {
 		embedSubDir := path.Join("assets", cat)
@@ -127,7 +131,7 @@ func (a *Animator) Init(hwnd uintptr, defaultTooltip string) error {
 		}
 		sort.Strings(fileNames)
 
-		var hiconList []uintptr
+		var frameList []Frame
 		for _, fn := range fileNames {
 			data, err := embeddedAssets.ReadFile(path.Join(embedSubDir, fn))
 			if err != nil {
@@ -137,12 +141,17 @@ func (a *Animator) Init(hwnd uintptr, defaultTooltip string) error {
 			_ = os.WriteFile(tempIcoPath, data, 0644)
 
 			pPath, _ := syscall.UTF16PtrFromString(tempIcoPath)
-			hIcon, _, _ := procLoadImageW.Call(0, uintptr(unsafe.Pointer(pPath)), IMAGE_ICON, 16, 16, LR_LOADFROMFILE)
-			if hIcon != 0 {
-				hiconList = append(hiconList, hIcon)
+			hSmall, _, _ := procLoadImageW.Call(0, uintptr(unsafe.Pointer(pPath)), IMAGE_ICON, 16, 16, LR_LOADFROMFILE)
+			hBig, _, _ := procLoadImageW.Call(0, uintptr(unsafe.Pointer(pPath)), IMAGE_ICON, 32, 32, LR_LOADFROMFILE)
+
+			if hSmall != 0 {
+				if hBig == 0 {
+					hBig = hSmall
+				}
+				frameList = append(frameList, Frame{Small: hSmall, Big: hBig})
 			}
 		}
-		a.frames[cat] = hiconList
+		a.frames[cat] = frameList
 	}
 
 	// Load default master icon
@@ -151,13 +160,17 @@ func (a *Animator) Init(hwnd uintptr, defaultTooltip string) error {
 		defPath := filepath.Join(cacheDir, "default.ico")
 		_ = os.WriteFile(defPath, defData, 0644)
 		pPath, _ := syscall.UTF16PtrFromString(defPath)
-		hIcon, _, _ := procLoadImageW.Call(0, uintptr(unsafe.Pointer(pPath)), IMAGE_ICON, 16, 16, LR_LOADFROMFILE)
-		if hIcon != 0 {
-			a.defaultIcon = hIcon
+		hSmall, _, _ := procLoadImageW.Call(0, uintptr(unsafe.Pointer(pPath)), IMAGE_ICON, 16, 16, LR_LOADFROMFILE)
+		hBig, _, _ := procLoadImageW.Call(0, uintptr(unsafe.Pointer(pPath)), IMAGE_ICON, 32, 32, LR_LOADFROMFILE)
+		if hSmall != 0 {
+			if hBig == 0 {
+				hBig = hSmall
+			}
+			a.defaultIcon = Frame{Small: hSmall, Big: hBig}
 		}
 	}
 
-	if a.defaultIcon == 0 && len(a.frames["scuba"]) > 0 {
+	if a.defaultIcon.Small == 0 && len(a.frames["scuba"]) > 0 {
 		a.defaultIcon = a.frames["scuba"][0]
 	}
 
@@ -179,7 +192,7 @@ func (a *Animator) AddTray() error {
 	nid.UID = a.uid
 	nid.UFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP
 	nid.UCallbackMessage = WM_TRAYICON
-	nid.HIcon = a.defaultIcon
+	nid.HIcon = a.defaultIcon.Small
 
 	copyTip(&nid.SzTip, a.currentTip)
 
@@ -207,7 +220,7 @@ func (a *Animator) StartAnimation(animType string, intervalMs int) {
 		}
 	}
 
-	// Stop any running animation
+	// Stop any currently running ticker
 	if a.ticker != nil {
 		a.ticker.Stop()
 		close(a.stopChan)
@@ -235,7 +248,7 @@ func (a *Animator) StartAnimation(animType string, intervalMs int) {
 	uid := a.uid
 	syncWnd := a.syncWindowIcon
 
-	go func(fList []uintptr) {
+	go func(fList []Frame) {
 		idx := 0
 		for {
 			select {
@@ -243,20 +256,21 @@ func (a *Animator) StartAnimation(animType string, intervalMs int) {
 				return
 			case <-ticker.C:
 				idx = (idx + 1) % len(fList)
-				hIcon := fList[idx]
+				f := fList[idx]
 
-				// Update Tray icon
+				// 1. Update Tray icon
 				var nid NOTIFYICONDATAW
 				nid.CbSize = uint32(unsafe.Sizeof(nid))
 				nid.HWnd = hwnd
 				nid.UID = uid
 				nid.UFlags = NIF_ICON
-				nid.HIcon = hIcon
+				nid.HIcon = f.Small
 				procShellNotifyIconW.Call(NIM_MODIFY, uintptr(unsafe.Pointer(&nid)))
 
-				// Update Window Taskbar/Titlebar icon if enabled
+				// 2. Update Window Taskbar and Titlebar icon if enabled
 				if syncWnd && hwnd != 0 {
-					procSendMessageW.Call(hwnd, WM_SETICON, ICON_SMALL, hIcon)
+					procSendMessageW.Call(hwnd, WM_SETICON, ICON_BIG, f.Big)
+					procSendMessageW.Call(hwnd, WM_SETICON, ICON_SMALL, f.Small)
 				}
 			}
 		}
@@ -275,17 +289,20 @@ func (a *Animator) StopAnimation() {
 	}
 	a.currentAnim = ""
 
-	if a.hwnd != 0 && a.defaultIcon != 0 {
+	if a.hwnd != 0 && a.defaultIcon.Small != 0 {
 		var nid NOTIFYICONDATAW
 		nid.CbSize = uint32(unsafe.Sizeof(nid))
 		nid.HWnd = a.hwnd
 		nid.UID = a.uid
 		nid.UFlags = NIF_ICON
-		nid.HIcon = a.defaultIcon
+		nid.HIcon = a.defaultIcon.Small
 		procShellNotifyIconW.Call(NIM_MODIFY, uintptr(unsafe.Pointer(&nid)))
 
 		if a.syncWindowIcon {
-			procSendMessageW.Call(a.hwnd, WM_SETICON, ICON_SMALL, a.defaultIcon)
+			if a.defaultIcon.Big != 0 {
+				procSendMessageW.Call(a.hwnd, WM_SETICON, ICON_BIG, a.defaultIcon.Big)
+			}
+			procSendMessageW.Call(a.hwnd, WM_SETICON, ICON_SMALL, a.defaultIcon.Small)
 		}
 	}
 }
@@ -335,9 +352,21 @@ func (a *Animator) FrameCount(animType string) int {
 	return len(a.frames[animType])
 }
 
-// DefaultIcon returns the loaded default HICON handle.
+// DefaultIcon returns the loaded default small HICON handle (for tray & titlebar).
 func (a *Animator) DefaultIcon() uintptr {
-	return a.defaultIcon
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return a.defaultIcon.Small
+}
+
+// DefaultIconBig returns the loaded default large HICON handle (for taskbar & Alt-Tab).
+func (a *Animator) DefaultIconBig() uintptr {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.defaultIcon.Big != 0 {
+		return a.defaultIcon.Big
+	}
+	return a.defaultIcon.Small
 }
 
 func copyTip(dest *[128]uint16, src string) {

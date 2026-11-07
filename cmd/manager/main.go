@@ -741,8 +741,13 @@ func main() {
 
 	if defIcon := animator.DefaultIcon(); defIcon != 0 {
 		user32DLL.NewProc("SendMessageW").Call(hwnd, 0x0080, 0, defIcon)
-		user32DLL.NewProc("SendMessageW").Call(hwnd, 0x0080, 1, defIcon)
 	}
+	if defIconBig := animator.DefaultIconBig(); defIconBig != 0 {
+		user32DLL.NewProc("SendMessageW").Call(hwnd, 0x0080, 1, defIconBig)
+	}
+
+	// Start continuous taskbar & tray icon animation on launch
+	animator.StartAnimation("scuba", 60)
 
 	userDataFolder := filepath.Join(os.TempDir(), "DiscordProfileManager_WebView2")
 	_ = os.MkdirAll(userDataFolder, 0700)
