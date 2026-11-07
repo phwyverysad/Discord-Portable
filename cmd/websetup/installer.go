@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/portapps/discord-ptb-portable/pkg/security"
-	"github.com/portapps/portapps/v3/pkg/shortcut"
+	"github.com/portapps/discord-ptb-portable/pkg/shell"
 )
 
 type InstallConfig struct {
@@ -283,11 +283,24 @@ func ExecuteInstallation(cfg InstallConfig, rootSourcePath string) error {
 		_ = copyDir(srcPackagesDir, dstPackagesDir)
 	}
 
-	// Setup Vencord Client Mod
+	// Setup Vencord Client Mod and Unified Host Loader
 	dstVencordApp := filepath.Join(dstAppDir, "resources", "app")
 	srcVencord := filepath.Join(rootSourcePath, "res", "vencord")
 	if _, err := os.Stat(srcVencord); err == nil {
 		_ = copyDir(srcVencord, dstVencordApp)
+	}
+
+	// Ensure Electron loads our host engine from resources/app
+	resourcesDir := filepath.Join(dstAppDir, "resources")
+	targetAppAsar := filepath.Join(resourcesDir, "app.asar")
+	targetUnderscoreAsar := filepath.Join(resourcesDir, "_app.asar")
+
+	if _, err := os.Stat(targetAppAsar); err == nil {
+		if _, err2 := os.Stat(targetUnderscoreAsar); os.IsNotExist(err2) {
+			_ = os.Rename(targetAppAsar, targetUnderscoreAsar)
+		} else {
+			_ = os.Remove(targetAppAsar)
+		}
 	}
 
 	// Initialize Profiles
@@ -329,14 +342,16 @@ func ExecuteInstallation(cfg InstallConfig, rootSourcePath string) error {
 				args += " --eco"
 			}
 
-			_ = shortcut.Create(shortcut.Shortcut{
-				ShortcutPath:     shortcutPath,
-				TargetPath:       targetLauncher,
-				Arguments:        shortcut.Property{Value: args},
-				Description:      shortcut.Property{Value: displayName},
-				IconLocation:     shortcut.Property{Value: iconFile},
-				WorkingDirectory: shortcut.Property{Value: cfg.InstallDir},
-			})
+			aumid := fmt.Sprintf("Discord.PTB.Profile.%s", prof)
+			_ = shell.CreateProfileShortcut(
+				shortcutPath,
+				targetLauncher,
+				args,
+				iconFile,
+				aumid,
+				displayName,
+				cfg.InstallDir,
+			)
 		}
 	}
 

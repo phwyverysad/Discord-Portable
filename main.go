@@ -16,12 +16,12 @@ import (
 	"github.com/portapps/discord-ptb-portable/pkg/backup"
 	"github.com/portapps/discord-ptb-portable/pkg/rpc"
 	"github.com/portapps/discord-ptb-portable/pkg/security"
+	"github.com/portapps/discord-ptb-portable/pkg/shell"
 	"github.com/portapps/discord-ptb-portable/pkg/updater"
 	"github.com/portapps/portapps/v3"
 	"github.com/portapps/portapps/v3/pkg/files"
 	"github.com/portapps/portapps/v3/pkg/log"
 	"github.com/portapps/portapps/v3/pkg/registry"
-	"github.com/portapps/portapps/v3/pkg/shortcut"
 )
 
 //go:embed res/DiscordPTB.lnk
@@ -273,20 +273,21 @@ func main() {
 	_ = os.Setenv("DISCORD_PORTABLE_PROFILE", profileID)
 	_ = os.Setenv("DISCORD_PORTABLE_ICON", profileIcon)
 
-	// Manage Start Menu & Desktop Shortcut with dedicated colored icon
+	// Manage Start Menu Shortcut with dedicated colored icon and explicit AUMID
 	dispName := profileDisplayName(profileID)
 	shortcutName := fmt.Sprintf("%s.lnk", dispName)
 	shortcutPath := filepath.Join(files.StartMenuPath(), shortcutName)
-	_ = os.WriteFile(shortcutPath, defaultShortcut, 0644)
+	aumid := fmt.Sprintf("Discord.PTB.Profile.%s", profileID)
 
-	_ = shortcut.Create(shortcut.Shortcut{
-		ShortcutPath:     shortcutPath,
-		TargetPath:       app.Process,
-		Arguments:        shortcut.Property{Value: fmt.Sprintf("--user-data-dir=\"%s\" --multi-instance", profileDataPath)},
-		Description:      shortcut.Property{Value: dispName},
-		IconLocation:     shortcut.Property{Value: profileIcon},
-		WorkingDirectory: shortcut.Property{Value: app.AppPath},
-	})
+	_ = shell.CreateProfileShortcut(
+		shortcutPath,
+		app.Process,
+		fmt.Sprintf("--user-data-dir=\"%s\" --multi-instance", profileDataPath),
+		profileIcon,
+		aumid,
+		dispName,
+		app.AppPath,
+	)
 
 	defer func() {
 		_ = os.Remove(shortcutPath)
