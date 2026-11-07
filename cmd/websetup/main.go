@@ -27,6 +27,9 @@ var (
 	procDispatchMessageW = user32Main.NewProc("DispatchMessageW")
 	procPostQuitMessage  = user32Main.NewProc("PostQuitMessage")
 	procGetSystemMetrics = user32Main.NewProc("GetSystemMetrics")
+	procLoadCursorW      = user32Main.NewProc("LoadCursorW")
+	procSetCursor        = user32Main.NewProc("SetCursor")
+	procDestroyWindow    = user32Main.NewProc("DestroyWindow")
 )
 
 type WNDCLASSEXW struct {
@@ -60,20 +63,34 @@ const (
 	WS_EX_APPWINDOW = 0x00040000
 	CS_DROPSHADOW   = 0x00020000
 	WM_DESTROY      = 0x0002
+	WM_MOVE         = 0x0003
 	WM_SIZE         = 0x0005
 	WM_CLOSE        = 0x0010
+	WM_SETCURSOR    = 0x0020
 	SW_SHOW         = 5
 	SM_CXSCREEN     = 0
 	SM_CYSCREEN     = 1
 )
 
-var globalChromium *edge.Chromium
+var (
+	globalChromium *edge.Chromium
+	defaultCursor  uintptr
+)
 
 func framelessWndProc(hwnd uintptr, msg uint32, wp, lp uintptr) uintptr {
 	switch msg {
+	case WM_SETCURSOR:
+		if defaultCursor != 0 {
+			procSetCursor.Call(defaultCursor)
+			return 1
+		}
 	case WM_SIZE:
 		if globalChromium != nil {
 			globalChromium.Resize()
+		}
+	case WM_MOVE:
+		if globalChromium != nil {
+			_ = globalChromium.NotifyParentWindowPositionChanged()
 		}
 	case WM_CLOSE:
 		procPostQuitMessage.Call(0)
@@ -134,12 +151,17 @@ func main() {
 	var hinst windows.Handle
 	windows.GetModuleHandleEx(0, nil, &hinst)
 
+	cur, _, _ := procLoadCursorW.Call(0, 32512) // IDC_ARROW
+	defaultCursor = cur
+
 	className, _ := windows.UTF16PtrFromString("DiscordFramelessWebSetup")
+	titleName, _ := windows.UTF16PtrFromString("Discord PTB Portable - WebSetup")
 	wc := WNDCLASSEXW{
 		CbSize:        uint32(unsafe.Sizeof(WNDCLASSEXW{})),
 		Style:         CS_DROPSHADOW,
 		LpfnWndProc:   windows.NewCallback(framelessWndProc),
 		HInstance:     hinst,
+		HCursor:       windows.Handle(cur),
 		LpszClassName: className,
 	}
 	procRegisterClassExW.Call(uintptr(unsafe.Pointer(&wc)))
@@ -156,7 +178,7 @@ func main() {
 	hwnd, _, _ := procCreateWindowExW.Call(
 		WS_EX_APPWINDOW,
 		uintptr(unsafe.Pointer(className)),
-		uintptr(unsafe.Pointer(className)),
+		uintptr(unsafe.Pointer(titleName)),
 		WS_POPUP|WS_CLIPCHILDREN,
 		uintptr(x),
 		uintptr(y),
@@ -170,15 +192,17 @@ func main() {
 	if hwnd != 0 {
 		server.SetWindowHwnd(hwnd)
 
-		userDataFolder := filepath.Join(os.Getenv("TEMP"), "discord_websetup_webview2")
+		userDataFolder := filepath.Join(os.Getenv("TEMP"), "discord_websetup_wv2")
 		_ = os.MkdirAll(userDataFolder, 0700)
-		defer os.RemoveAll(userDataFolder)
 
 		chromium := edge.NewChromium()
 		chromium.DataPath = userDataFolder
 		globalChromium = chromium
 
 		if chromium.Embed(hwnd) {
+			_ = chromium.Show()
+			chromium.Focus()
+
 			settings, _ := chromium.GetSettings()
 			if settings != nil {
 				_ = settings.PutAreDefaultContextMenusEnabled(false)
@@ -203,6 +227,8 @@ func main() {
 			}
 			return
 		}
+		// Destroy unembedded window before fallback
+		procDestroyWindow.Call(hwnd)
 	}
 
 	// Fallback to browser if WebView2 runtime is completely missing
