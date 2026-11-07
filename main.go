@@ -188,6 +188,9 @@ func main() {
 		log.Fatal().Err(err).Msg("Cannot initialize secure profile directory")
 	}
 
+	// Capture original host user roaming APPDATA for Windows Shell Start Menu registration
+	origUserAppData := os.Getenv("APPDATA")
+
 	// Portable APPDATA isolation: redirect Electron's roaming appdata to portable profiles base
 	_ = os.Setenv("APPDATA", profilesBaseDir)
 	roamingDiscordPath := filepath.Join(profilesBaseDir, "discordptb")
@@ -276,7 +279,9 @@ func main() {
 	// Manage Start Menu Shortcut with dedicated colored icon and explicit AUMID
 	dispName := profileDisplayName(profileID)
 	shortcutName := fmt.Sprintf("%s.lnk", dispName)
-	shortcutPath := filepath.Join(files.StartMenuPath(), shortcutName)
+	realStartMenu := filepath.Join(origUserAppData, "Microsoft", "Windows", "Start Menu", "Programs", "Discord Portable")
+	_ = os.MkdirAll(realStartMenu, 0755)
+	shortcutPath := filepath.Join(realStartMenu, shortcutName)
 	aumid := fmt.Sprintf("Discord.PTB.Profile.%s", profileID)
 
 	_ = shell.CreateProfileShortcut(
@@ -290,7 +295,6 @@ func main() {
 	)
 
 	defer func() {
-		_ = os.Remove(shortcutPath)
 		app.Close()
 	}()
 

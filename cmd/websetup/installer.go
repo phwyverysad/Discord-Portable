@@ -16,6 +16,25 @@ import (
 	"github.com/portapps/discord-ptb-portable/pkg/shell"
 )
 
+func terminateDirectoryProcesses(dir string) {
+	if dir == "" {
+		return
+	}
+	absDir, err := filepath.Abs(dir)
+	if err != nil {
+		absDir = dir
+	}
+	psCmd := fmt.Sprintf(
+		"Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -like '%s*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }",
+		absDir,
+	)
+	cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-Command", psCmd)
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000}
+	_ = cmd.Run()
+}
+
+
+
 type InstallConfig struct {
 	InstallDir      string   `json:"installDir"`
 	InstallMode     string   `json:"installMode"` // "pc" or "usb"
@@ -202,10 +221,10 @@ func ExecuteInstallation(cfg InstallConfig, rootSourcePath string) error {
 
 	updateStatus(5, "กำลังเตรียมโฟลเดอร์ติดตั้ง...", false, "")
 
-	// 1. Terminate any running Discord instances to prevent file locking (hidden in background)
-	_ = hiddenCommand("taskkill", "/F", "/IM", "DiscordPTB.exe").Run()
-	_ = hiddenCommand("taskkill", "/F", "/IM", "DiscordPTB-Portable.exe").Run()
-	_ = hiddenCommand("taskkill", "/F", "/IM", "Discord-Portable.exe").Run()
+	// 1. Terminate only running Discord instances in target installation directory to prevent file locking
+	if cfg.InstallDir != "" {
+		terminateDirectoryProcesses(cfg.InstallDir)
+	}
 
 	if cfg.InstallDir == "" {
 		if cfg.InstallMode == "usb" {
@@ -352,8 +371,32 @@ func ExecuteInstallation(cfg InstallConfig, rootSourcePath string) error {
 				displayName,
 				cfg.InstallDir,
 			)
+
+			// Also create in Windows Start Menu for official AUMID registration in Windows Shell
+			startMenuDir := filepath.Join(os.Getenv("APPDATA"), "Microsoft", "Windows", "Start Menu", "Programs", "Discord Portable")
+			_ = os.MkdirAll(startMenuDir, 0755)
+			startMenuShortcut := filepath.Join(startMenuDir, shortcutName)
+			_ = shell.CreateProfileShortcut(
+				startMenuShortcut,
+				targetLauncher,
+				args,
+				iconFile,
+				aumid,
+				displayName,
+				cfg.InstallDir,
+			)
 		}
 	}
+
+	// Copy Profile Manager Binary into target installation directory
+	srcManager := filepath.Join(rootSourcePath, "Discord-ProfileManager.exe")
+	targetManager := filepath.Join(cfg.InstallDir, "Discord-ProfileManager.exe")
+	if _, err := os.Stat(srcManager); err == nil {
+		_ = copyFile(srcManager, targetManager)
+	}
+
+	// Register Context Menu in Windows Registry (strictly on our Discord items!)
+	_ = shell.RegisterDiscordContextMenu(targetManager, dstIcons)
 
 	updateStatus(95, "กำลังตรวจสอบความพร้อม...", false, "")
 	time.Sleep(500 * time.Millisecond)

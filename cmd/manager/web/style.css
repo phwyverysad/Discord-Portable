@@ -1,0 +1,411 @@
+/* ==========================================================================
+   Discord PTB Profile Manager - Clean TikTok Design System
+   ========================================================================== */
+
+:root {
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Prompt", Roboto, Helvetica, Arial, sans-serif;
+  --bg-app: #F8FAFC;
+  --bg-card: #FFFFFF;
+  --border-card: #E2E8F0;
+  --radius-card: 14px;
+  --radius-pill: 9999px;
+  --shadow-card: 0 4px 16px rgba(15, 23, 42, 0.04);
+  --primary: #5865F2;
+  --primary-hover: #4752C4;
+  --primary-light: #EEF2FF;
+  --danger: #EF4444;
+  --danger-hover: #DC2626;
+  --danger-light: #FEF2F2;
+  --text-primary: #0F172A;
+  --text-secondary: #64748B;
+  --text-muted: #94A3B8;
+  --transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+}
+
+body {
+  font-family: var(--font-family);
+  background: var(--bg-app);
+  color: var(--text-primary);
+  overflow: hidden;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.window-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  background: var(--bg-app);
+}
+
+/* ==========================================================================
+   Window Titlebar
+   ========================================================================== */
+.window-titlebar {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  background: var(--bg-app);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+  flex-shrink: 0;
+}
+
+.titlebar-drag-handle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  height: 100%;
+  cursor: grab;
+}
+
+.titlebar-drag-handle:active {
+  cursor: grabbing;
+}
+
+.app-brand-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.window-title-text {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.window-controls-cluster {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.win-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.win-btn:hover {
+  background: #EDF2F7;
+  color: var(--text-primary);
+}
+
+.win-btn-close:hover {
+  background: #FEE2E2;
+  color: var(--danger);
+}
+
+/* ==========================================================================
+   Window Content & Palette Card
+   ========================================================================== */
+.window-content {
+  flex: 1;
+  padding: 16px 20px 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.card-layer {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: 16px 20px;
+}
+
+.palette-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.section-header-compact {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.header-text-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.section-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.25;
+}
+
+.section-subtitle {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 3px;
+}
+
+.selection-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.badge-pill {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--primary);
+  background: var(--primary-light);
+  border: 1px solid #BFDBFE;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+}
+
+.selection-buttons-cluster {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: #F8FAFC;
+  border: 1px solid var(--border-card);
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-pill:hover {
+  background: #F1F5F9;
+  color: var(--text-primary);
+  border-color: #CBD5E1;
+}
+
+/* ==========================================================================
+   12 Color Profiles Grid (3 columns x 4 rows)
+   ========================================================================== */
+.profiles-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px 12px;
+  flex: 1;
+}
+
+.profile-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: #FFFFFF;
+  border: 1.5px solid #F1F5F9;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.profile-card:hover {
+  border-color: #CBD5E1;
+  background: #F8FAFC;
+  transform: translateY(-1px);
+}
+
+.profile-card.selected {
+  border-color: var(--primary);
+  background: #F8FAFC;
+  box-shadow: 0 0 0 1px var(--primary);
+}
+
+.profile-card-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.profile-icon-circle {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: #F8FAFC;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.profile-icon-circle img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+.profile-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile-status-tag {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #16A34A;
+  background: #DCFCE7;
+  padding: 1px 6px;
+  border-radius: 6px;
+  margin-left: 4px;
+}
+
+.profile-check {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 1.5px solid #CBD5E1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+  flex-shrink: 0;
+}
+
+.profile-card.selected .profile-check {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.profile-card.selected.mode-uninstall .profile-check {
+  background: var(--danger);
+  border-color: var(--danger);
+}
+
+.profile-check svg {
+  display: none;
+  color: #FFFFFF;
+}
+
+.profile-card.selected .profile-check svg {
+  display: block;
+}
+
+/* ==========================================================================
+   Uninstall Full Notice Banner
+   ========================================================================== */
+.uninstall-notice {
+  margin-top: 10px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  color: #B91C1C;
+  font-size: 0.78rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: fadeIn 0.2s ease;
+}
+
+/* ==========================================================================
+   Window Footer
+   ========================================================================== */
+.window-footer {
+  padding: 14px 20px 16px;
+  background: #FFFFFF;
+  border-top: 1px solid var(--border-card);
+  flex-shrink: 0;
+}
+
+.footer-action-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 24px;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-secondary {
+  background: #FFFFFF;
+  border: 1px solid var(--border-card);
+  color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+  background: #F8FAFC;
+  border-color: #CBD5E1;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: #FFFFFF;
+  box-shadow: 0 2px 8px rgba(88, 101, 242, 0.25);
+}
+
+.btn-primary:hover {
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: #FFFFFF;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.25);
+}
+
+.btn-danger:hover {
+  background: var(--danger-hover);
+  transform: translateY(-1px);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}

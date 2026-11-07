@@ -225,8 +225,7 @@ func (s *SetupServer) handleBrowse(w http.ResponseWriter, r *http.Request) {
 	psScript := `Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.FolderBrowserDialog; $f.Description = 'เลือกโฟลเดอร์สำหรับติดตั้ง Discord PTB Portable'; if ($f.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { Write-Output $f.SelectedPath }`
 	cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-Command", psScript)
 	cmd.SysProcAttr = &syscall.SysProcAttr{
-		HideWindow:    true,
-		CreationFlags: 0x08000000, // CREATE_NO_WINDOW
+		CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP | 0x00000008,
 	}
 	out, err := cmd.Output()
 	chosenPath := strings.TrimSpace(string(out))
@@ -259,8 +258,7 @@ func (s *SetupServer) handleLaunch(w http.ResponseWriter, r *http.Request) {
 	cmd := exec.Command(targetLauncher, fmt.Sprintf("--profile=%s", req.Profile))
 	cmd.Dir = filepath.Dir(targetLauncher)
 	cmd.SysProcAttr = &syscall.SysProcAttr{
-		HideWindow:    true,
-		CreationFlags: 0x08000000, // CREATE_NO_WINDOW
+		CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP | 0x00000008,
 	}
 	_ = cmd.Start()
 

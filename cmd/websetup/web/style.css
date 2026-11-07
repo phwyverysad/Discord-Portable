@@ -684,18 +684,24 @@ html, body {
 /* ==========================================================================
    Toggle Switch & Options Card (Section 4.2: Decision Matrix)
    ========================================================================== */
+.step2-options-card {
+  margin-top: 10px;
+  margin-bottom: 14px;
+  padding: 14px 18px 20px;
+}
+
 .custom-switch-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 1px 0;
+  gap: 12px;
+  padding: 4px 0;
 }
 
 .switch-divider {
   height: 1px;
   background: #EDF2F7;
-  margin: 5px 0;
+  margin: 6px 0;
 }
 
 .switch-info {
