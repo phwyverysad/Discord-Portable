@@ -177,27 +177,16 @@ html, body {
    ========================================================================== */
 
 .window-header {
-
-  padding: 10px 18px;
-
+  padding: 8px 18px;
   background: var(--bg-surface);
-
   border-bottom: 1px solid var(--border-subtle);
-
   display: flex;
-
   align-items: center;
-
-  justify-content: flex-end;
-
+  justify-content: space-between;
   gap: 12px;
-
   -webkit-app-region: drag;
-
   cursor: grab;
-
   z-index: 10;
-
 }
 
 .brand-wrapper {
@@ -1987,3 +1976,14 @@ html, body {
   align-items: center;
   gap: 10px;
 }
+
+/* Vencord Option Row in Step 2 */
+.vencord-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #F1F5F9;
+}
+

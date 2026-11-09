@@ -23,6 +23,9 @@ if (electron && electron.app) {
   if (!profile) profile = "01_yellow";
 
   const aumid = `Discord.PTB.Profile.${profile}`;
+  try {
+    fs.appendFileSync('C:\\Discord-PTB-Portable\\shim.log', `[${new Date().toISOString()}] Profile=${profile} AUMID=${aumid}\n`);
+  } catch (_) {}
 
   // Override app.setAppUserModelId to enforce our profile AUMID matching the Windows Shell shortcut
   try {
@@ -36,9 +39,22 @@ if (electron && electron.app) {
   }
 
   // 2. Resolve Profile Icon (.ico)
+  function findRootDir(start) {
+    let cur = start;
+    for (let i = 0; i < 6; i++) {
+      if (fs.existsSync(path.join(cur, "res", "icons"))) {
+        return cur;
+      }
+      const parent = path.dirname(cur);
+      if (parent === cur) break;
+      cur = parent;
+    }
+    return "C:\\Discord-PTB-Portable";
+  }
+
   let iconPath = process.env.DISCORD_PORTABLE_ICON;
   if (!iconPath || !fs.existsSync(iconPath)) {
-    const rootDir = path.resolve(__dirname, "..", "..");
+    const rootDir = findRootDir(__dirname);
     const cand = path.join(rootDir, "res", "icons", `${profile}.ico`);
     if (fs.existsSync(cand)) {
       iconPath = cand;
@@ -52,18 +68,28 @@ if (electron && electron.app) {
     }
   }
 
-  // 3. Set window icon whenever any BrowserWindow is created
-  if (iconPath && fs.existsSync(iconPath)) {
-    try {
-      const nIcon = nativeImage.createFromPath(iconPath);
-      app.on("browser-window-created", (evt, win) => {
-        try {
-          win.setIcon(nIcon);
-        } catch (_) {}
-      });
-    } catch (e) {
-      console.error("[ProfileShim] Failed to prepare icon:", e);
+  // 3. Monkey-patch BrowserWindow so options.icon is explicitly set on native window creation
+  const nIcon = iconPath && fs.existsSync(iconPath) ? nativeImage.createFromPath(iconPath) : null;
+  if (electron.BrowserWindow && nIcon) {
+    const OrigBrowserWindow = electron.BrowserWindow;
+    function PatchedBrowserWindow(opts) {
+      opts = opts || {};
+      opts.icon = nIcon;
+      const win = new OrigBrowserWindow(opts);
+      try { win.setIcon(nIcon); } catch (_) {}
+      return win;
     }
+    PatchedBrowserWindow.prototype = OrigBrowserWindow.prototype;
+    Object.assign(PatchedBrowserWindow, OrigBrowserWindow);
+    electron.BrowserWindow = PatchedBrowserWindow;
+  }
+
+  if (nIcon) {
+    app.on("browser-window-created", (evt, win) => {
+      try {
+        win.setIcon(nIcon);
+      } catch (_) {}
+    });
   }
 }
 

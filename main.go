@@ -296,6 +296,19 @@ func main() {
 		app.AppPath,
 	)
 
+	// Also register shortcut inside the redirected APPDATA so that the child Electron process finds it
+	redirectedStartMenu := filepath.Join(profilesBaseDir, "Microsoft", "Windows", "Start Menu", "Programs", "Discord Portable")
+	_ = os.MkdirAll(redirectedStartMenu, 0755)
+	_ = shell.CreateProfileShortcut(
+		filepath.Join(redirectedStartMenu, shortcutName),
+		app.Process,
+		fmt.Sprintf("--user-data-dir=\"%s\" --multi-instance", profileDataPath),
+		profileIcon,
+		aumid,
+		dispName,
+		app.AppPath,
+	)
+
 	defer func() {
 		app.Close()
 	}()
@@ -306,16 +319,17 @@ func main() {
 		Str("icon", profileIcon).
 		Msg("Launching Discord PTB Portable Profile...")
 
-	// Clean launch Discord PTB GUI
+	// Clean launch Discord PTB GUI with no console window
 	cmd := exec.Command(app.Process, launchArgs...)
 	cmd.Dir = electronAppPath
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 	if err := cmd.Start(); err != nil {
 		log.Fatal().Err(err).Msg("Failed to start Discord PTB")
 		return
 	}
 
-	// Dynamic Taskbar Icon Sync: Watch for Discord window and apply profile icon via WM_SETICON
-	go func(targetPid int, iconFile string) {
+	// Dynamic Taskbar Icon Sync: Watch for Discord window and apply profile icon via Shell PropertyStore & WM_SETICON
+	go func(targetPid int, iconFile string, targetAumid string) {
 		if iconFile == "" {
 			return
 		}
@@ -333,9 +347,6 @@ func main() {
 
 		hBig, _, _ := procLoadImageW.Call(0, uintptr(unsafe.Pointer(iconPtr)), 1, 32, 32, 0x0010)
 		hSmall, _, _ := procLoadImageW.Call(0, uintptr(unsafe.Pointer(iconPtr)), 1, 16, 16, 0x0010)
-		if hBig == 0 && hSmall == 0 {
-			return
-		}
 
 		for i := 0; i < 40; i++ {
 			time.Sleep(500 * time.Millisecond)
@@ -347,6 +358,7 @@ func main() {
 				var pid uint32
 				procGetWindowThreadProcessId.Call(hwnd, uintptr(unsafe.Pointer(&pid)))
 				if int(pid) == targetPid {
+					_ = shell.SetWindowProfileProperties(hwnd, targetAumid, iconFile)
 					if hSmall != 0 {
 						procSendMessageW.Call(hwnd, 0x0080, 0, hSmall)
 					}
@@ -358,7 +370,7 @@ func main() {
 			})
 			procEnumWindows.Call(cb, 0)
 		}
-	}(cmd.Process.Pid, profileIcon)
+	}(cmd.Process.Pid, profileIcon, aumid)
 
 	_ = cmd.Wait()
 }

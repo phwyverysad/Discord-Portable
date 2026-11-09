@@ -45,6 +45,12 @@ var (
 		Fmtid: GUID{0x9F4C2855, 0x9F79, 0x4B39, [8]byte{0xA8, 0xD0, 0xE1, 0xD4, 0x2D, 0xE1, 0xD5, 0xF3}},
 		Pid:   5,
 	}
+	pkeyRelaunchIconResource = PROPERTYKEY{
+		Fmtid: GUID{0x9F4C2855, 0x9F79, 0x4B39, [8]byte{0xA8, 0xD0, 0xE1, 0xD4, 0x2D, 0xE1, 0xD5, 0xF3}},
+		Pid:   3,
+	}
+	shell32DLL                       = syscall.NewLazyDLL("shell32.dll")
+	procSHGetPropertyStoreForWindow = shell32DLL.NewProc("SHGetPropertyStoreForWindow")
 )
 
 // CreateProfileShortcut creates a Windows shell link (.lnk) with explicit AppUserModelID and dedicated icon.
@@ -127,3 +133,48 @@ func CreateProfileShortcut(shortcutPath, targetPath, arguments, iconLocation, au
 
 	return nil
 }
+
+// SetWindowProfileProperties assigns AUMID and RelaunchIconResource directly to an HWND.
+func SetWindowProfileProperties(hwnd uintptr, aumid, iconLocation string) error {
+	if procSHGetPropertyStoreForWindow.Find() != nil {
+		return nil
+	}
+	procCoInitialize.Call(0)
+	defer procCoUninitialize.Call()
+
+	var pProp uintptr
+	hr, _, _ := procSHGetPropertyStoreForWindow.Call(
+		hwnd,
+		uintptr(unsafe.Pointer(&iidPropertyStore)),
+		uintptr(unsafe.Pointer(&pProp)),
+	)
+	if hr != 0 || pProp == 0 {
+		return fmt.Errorf("SHGetPropertyStoreForWindow failed: 0x%x", hr)
+	}
+
+	vtableProp := *(**[16]uintptr)(unsafe.Pointer(pProp))
+	defer syscall.SyscallN(vtableProp[2], pProp) // Release
+
+	if aumid != "" {
+		aumidUTF16, _ := syscall.UTF16PtrFromString(aumid)
+		pv := PROPVARIANT{
+			Vt:  31, // VT_LPWSTR
+			Val: uintptr(unsafe.Pointer(aumidUTF16)),
+		}
+		syscall.SyscallN(vtableProp[6], pProp, uintptr(unsafe.Pointer(&pkeyAppUserModelID)), uintptr(unsafe.Pointer(&pv)))
+	}
+
+	if iconLocation != "" {
+		iconStr := fmt.Sprintf("%s,0", iconLocation)
+		iconUTF16, _ := syscall.UTF16PtrFromString(iconStr)
+		pv := PROPVARIANT{
+			Vt:  31, // VT_LPWSTR
+			Val: uintptr(unsafe.Pointer(iconUTF16)),
+		}
+		syscall.SyscallN(vtableProp[6], pProp, uintptr(unsafe.Pointer(&pkeyRelaunchIconResource)), uintptr(unsafe.Pointer(&pv)))
+	}
+
+	syscall.SyscallN(vtableProp[7], pProp) // Commit
+	return nil
+}
+

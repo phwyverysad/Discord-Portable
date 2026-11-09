@@ -490,9 +490,6 @@
         elements.btnNext.style.display = "inline-flex";
         elements.btnNext.innerHTML = `
           <span>${window.I18N ? window.I18N.t("startInstallBtn") : "ติดตั้งทันที"}</span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="20 6 9 17 4 12"></polyline>
-          </svg>
         `;
       }
     } else if (step === 3) {
@@ -541,8 +538,8 @@
       ecoMode: false,
       profiles: profileKeys,
       installVencord: elements.switchVencord ? elements.switchVencord.checked : true,
-      launchOnFinish: elements.switchLaunchNow ? elements.switchLaunchNow.checked : true,
-      createShortcuts: elements.switchDesktopShortcuts ? elements.switchDesktopShortcuts.checked : true,
+      launchOnFinish: elements.launchNowCheck ? elements.launchNowCheck.checked : true,
+      createShortcuts: elements.shortcutsCheck ? elements.shortcutsCheck.checked : true,
     };
 
     fetch("/api/install", {

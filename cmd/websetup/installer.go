@@ -314,20 +314,23 @@ func ExecuteInstallation(cfg InstallConfig, rootSourcePath string) error {
 	targetAppAsar := filepath.Join(resourcesDir, "app.asar")
 	targetUnderscoreAsar := filepath.Join(resourcesDir, "_app.asar")
 
-	// If _app.asar exists from previous faulty installs, restore it to app.asar
-	if _, err := os.Stat(targetUnderscoreAsar); err == nil {
-		if _, errApp := os.Stat(targetAppAsar); os.IsNotExist(errApp) {
-			_ = os.Rename(targetUnderscoreAsar, targetAppAsar)
-		} else {
-			_ = os.Remove(targetUnderscoreAsar)
-		}
-	}
-
 	if cfg.InstallVencord {
+		// Vencord installation: rename app.asar -> _app.asar so Electron loads resources/app/
+		if _, err := os.Stat(targetAppAsar); err == nil {
+			if _, errUnderscore := os.Stat(targetUnderscoreAsar); os.IsNotExist(errUnderscore) {
+				_ = os.Rename(targetAppAsar, targetUnderscoreAsar)
+			}
+		}
 		if _, err := os.Stat(srcVencord); err == nil {
 			_ = copyDir(srcVencord, dstVencordApp)
 		}
 	} else {
+		// Restore vanilla app.asar if Vencord is disabled
+		if _, err := os.Stat(targetUnderscoreAsar); err == nil {
+			if _, errApp := os.Stat(targetAppAsar); os.IsNotExist(errApp) {
+				_ = os.Rename(targetUnderscoreAsar, targetAppAsar)
+			}
+		}
 		_ = os.RemoveAll(dstVencordApp)
 	}
 

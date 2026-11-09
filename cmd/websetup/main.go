@@ -183,10 +183,24 @@ func main() {
 	defer server.Stop()
 
 	targetURL := server.URL()
+	stepParam := ""
+	langParam := ""
 	for _, arg := range os.Args[1:] {
 		if strings.HasPrefix(arg, "--step=") {
-			targetURL = fmt.Sprintf("%s/?step=%s", server.URL(), strings.TrimPrefix(arg, "--step="))
+			stepParam = strings.TrimPrefix(arg, "--step=")
+		} else if strings.HasPrefix(arg, "--lang=") {
+			langParam = strings.TrimPrefix(arg, "--lang=")
 		}
+	}
+	var q []string
+	if stepParam != "" {
+		q = append(q, "step="+stepParam)
+	}
+	if langParam != "" {
+		q = append(q, "lang="+langParam)
+	}
+	if len(q) > 0 {
+		targetURL = fmt.Sprintf("%s/?%s", server.URL(), strings.Join(q, "&"))
 	}
 	log.Info().Str("url", targetURL).Msg("WebSetup Server listening")
 
