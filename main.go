@@ -12,6 +12,8 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
+	"unsafe"
 
 	"github.com/portapps/discord-ptb-portable/pkg/backup"
 	"github.com/portapps/discord-ptb-portable/pkg/rpc"
@@ -307,5 +309,56 @@ func main() {
 	// Clean launch Discord PTB GUI
 	cmd := exec.Command(app.Process, launchArgs...)
 	cmd.Dir = electronAppPath
-	_ = cmd.Run()
+	if err := cmd.Start(); err != nil {
+		log.Fatal().Err(err).Msg("Failed to start Discord PTB")
+		return
+	}
+
+	// Dynamic Taskbar Icon Sync: Watch for Discord window and apply profile icon via WM_SETICON
+	go func(targetPid int, iconFile string) {
+		if iconFile == "" {
+			return
+		}
+		user32 := syscall.NewLazyDLL("user32.dll")
+		procLoadImageW := user32.NewProc("LoadImageW")
+		procSendMessageW := user32.NewProc("SendMessageW")
+		procEnumWindows := user32.NewProc("EnumWindows")
+		procGetWindowThreadProcessId := user32.NewProc("GetWindowThreadProcessId")
+		procIsWindowVisible := user32.NewProc("IsWindowVisible")
+
+		iconPtr, err := syscall.UTF16PtrFromString(iconFile)
+		if err != nil {
+			return
+		}
+
+		hBig, _, _ := procLoadImageW.Call(0, uintptr(unsafe.Pointer(iconPtr)), 1, 32, 32, 0x0010)
+		hSmall, _, _ := procLoadImageW.Call(0, uintptr(unsafe.Pointer(iconPtr)), 1, 16, 16, 0x0010)
+		if hBig == 0 && hSmall == 0 {
+			return
+		}
+
+		for i := 0; i < 40; i++ {
+			time.Sleep(500 * time.Millisecond)
+			cb := syscall.NewCallback(func(hwnd uintptr, lparam uintptr) uintptr {
+				vis, _, _ := procIsWindowVisible.Call(hwnd)
+				if vis == 0 {
+					return 1
+				}
+				var pid uint32
+				procGetWindowThreadProcessId.Call(hwnd, uintptr(unsafe.Pointer(&pid)))
+				if int(pid) == targetPid {
+					if hSmall != 0 {
+						procSendMessageW.Call(hwnd, 0x0080, 0, hSmall)
+					}
+					if hBig != 0 {
+						procSendMessageW.Call(hwnd, 0x0080, 1, hBig)
+					}
+				}
+				return 1
+			})
+			procEnumWindows.Call(cb, 0)
+		}
+	}(cmd.Process.Pid, profileIcon)
+
+	_ = cmd.Wait()
 }

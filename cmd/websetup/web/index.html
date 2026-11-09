@@ -62,11 +62,6 @@
               <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
           </button>
-          <button id="win-btn-maximize" class="win-btn win-btn-maximize" type="button" title="ขยายหน้าต่าง" aria-label="Maximize">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
-            </svg>
-          </button>
           <button id="win-btn-close" class="win-btn win-btn-close" type="button" title="ปิด" aria-label="Close">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -77,47 +72,6 @@
       </div>
     </header>
 
-    <!-- Top Stepper Navigation (Layer 1) -->
-    <nav class="steps-nav" aria-label="Installer Steps">
-      <div class="step-item active" data-step="1">
-        <div class="step-bubble">
-          <span>1</span>
-          <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"></polyline></svg>
-        </div>
-        <span class="step-label" data-i18n="step1Title">โฟลเดอร์ติดตั้ง</span>
-      </div>
-
-      <div class="step-connector"></div>
-
-      <div class="step-item" data-step="2">
-        <div class="step-bubble">
-          <span>2</span>
-          <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"></polyline></svg>
-        </div>
-        <span class="step-label" data-i18n="step2Title">เลือกโปรไฟล์</span>
-      </div>
-
-      <div class="step-connector"></div>
-
-      <div class="step-item" data-step="3">
-        <div class="step-bubble">
-          <span>3</span>
-          <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"></polyline></svg>
-        </div>
-        <span class="step-label" data-i18n="step3Title">กำลังติดตั้ง</span>
-      </div>
-
-      <div class="step-connector"></div>
-
-      <div class="step-item" data-step="4">
-        <div class="step-bubble">
-          <span>4</span>
-          <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"></polyline></svg>
-        </div>
-        <span class="step-label" data-i18n="step4Title">เสร็จสิ้น</span>
-      </div>
-    </nav>
-
     <!-- Main Content Area (Layer 0 Background with Layer 2 Elevated Cards) -->
     <div class="window-content">
 
@@ -125,7 +79,7 @@
            STEP 1: Folder Selection
            =================================================================== -->
       <section id="step-1" class="step-view active">
-        <div class="card-layer">
+        <div class="card-layer" style="padding: 16px 20px;">
           <div class="card-header">
             <div class="card-icon-badge">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -154,23 +108,68 @@
             </svg>
             <span data-i18n="installPathCallout">แยกโปรไฟล์และข้อมูลอิสระ ไม่ปะปนกับ Discord หลัก</span>
           </div>
+
+          <!-- Additional Options inside Step 1 -->
+          <div class="step1-options" style="margin-top: 14px; border-top: 1px solid #EDF2F7; padding-top: 10px;">
+            <div class="custom-switch-item">
+              <div class="switch-info">
+                <div class="switch-title">
+                  <span data-i18n="vencordTitle">ติดตั้ง Vencord</span>
+                </div>
+                <div class="switch-desc" data-i18n="vencordDesc">เพิ่มปลั๊กอินและธีมปรับแต่ง</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="switch-vencord" checked />
+                <span class="slider-round"></span>
+              </label>
+            </div>
+
+            <div class="switch-divider"></div>
+
+            <div class="custom-switch-item">
+              <div class="switch-info">
+                <div class="switch-title">
+                  <span data-i18n="launchNowLabel">เปิด Discord ทันที</span>
+                </div>
+                <div class="switch-desc" data-i18n="launchNowDesc">เปิดใช้งานทันทีหลังติดตั้งเสร็จ</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="switch-launch-now" checked />
+                <span class="slider-round"></span>
+              </label>
+            </div>
+
+            <div class="switch-divider"></div>
+
+            <div class="custom-switch-item">
+              <div class="switch-info">
+                <div class="switch-title">
+                  <span data-i18n="createDesktopShortcutsLabel">สร้างทางลัดบนเดสก์ท็อป</span>
+                </div>
+                <div class="switch-desc" data-i18n="createDesktopShortcutsDesc">สร้างไอคอนสีแยกแต่ละโปรไฟล์บน Desktop</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="switch-desktop-shortcuts" checked />
+                <span class="slider-round"></span>
+              </label>
+            </div>
+          </div>
         </div>
       </section>
 
       <!-- ===================================================================
-           STEP 2: Profiles & Settings Options
+           STEP 2: Profiles Selection (Matching Image 2 / Profile Manager)
            =================================================================== -->
       <section id="step-2" class="step-view">
-        <!-- Elevated Profiles Card -->
-        <div class="card-layer" style="padding: 10px 14px 10px;">
+        <div class="card-layer palette-card">
           <div class="section-header-compact">
-            <div>
+            <div class="header-text-group">
               <h2 class="section-title" data-i18n="profileSectionTitle">เลือกโปรไฟล์สี</h2>
               <p class="section-subtitle" data-i18n="profileSectionDesc">เลือกสีประจำบัญชีเพื่อแยกไอคอนและข้อมูล</p>
             </div>
-            <div class="profile-toolbar">
-              <div id="profile-counter" class="profile-counter">เลือกแล้ว 1 บัญชี</div>
-              <div class="profile-actions">
+            <div class="selection-actions-group">
+              <span id="profile-counter" class="badge-pill">เลือกแล้ว 1 บัญชี</span>
+              <div class="selection-buttons-cluster">
                 <button type="button" id="btn-select-all" class="btn-pill">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                     <polyline points="9 11 12 14 22 4"></polyline>
@@ -189,59 +188,13 @@
             </div>
           </div>
 
-          <!-- 12 Color Profiles Grid (NO NUMBERS - pure colors e.g. Discord Yellow) -->
+          <!-- 12 Color Profiles Grid (3 columns x 4 rows) -->
           <div id="profiles-grid" class="profiles-grid"></div>
-        </div>
-
-        <!-- Elevated Options Card (Vencord, Launch Now, Desktop Shortcuts) -->
-        <div class="card-layer step2-options-card">
-          <div class="custom-switch-item">
-            <div class="switch-info">
-              <div class="switch-title">
-                <span data-i18n="vencordTitle">ติดตั้ง Vencord</span>
-              </div>
-              <div class="switch-desc" data-i18n="vencordDesc">เพิ่มปลั๊กอินและธีมปรับแต่ง</div>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="switch-vencord" checked />
-              <span class="slider-round"></span>
-            </label>
-          </div>
-
-          <div class="switch-divider"></div>
-
-          <div class="custom-switch-item">
-            <div class="switch-info">
-              <div class="switch-title">
-                <span data-i18n="launchNowLabel">เปิด Discord ทันที</span>
-              </div>
-              <div class="switch-desc" data-i18n="launchNowDesc">เปิดใช้งานทันทีหลังติดตั้งเสร็จ</div>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="switch-launch-now" checked />
-              <span class="slider-round"></span>
-            </label>
-          </div>
-
-          <div class="switch-divider"></div>
-
-          <div class="custom-switch-item">
-            <div class="switch-info">
-              <div class="switch-title">
-                <span data-i18n="createDesktopShortcutsLabel">สร้างทางลัดบนเดสก์ท็อป</span>
-              </div>
-              <div class="switch-desc" data-i18n="createDesktopShortcutsDesc">สร้างไอคอนสีแยกแต่ละโปรไฟล์บน Desktop</div>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="switch-desktop-shortcuts" checked />
-              <span class="slider-round"></span>
-            </label>
-          </div>
         </div>
       </section>
 
       <!-- ===================================================================
-           STEP 3: Installation Progress View
+           STEP 3: Installation Progress
            =================================================================== -->
       <section id="step-3" class="step-view">
         <div class="card-layer" style="padding: 24px;">
@@ -356,17 +309,10 @@
 
     <!-- Persistent Footer Action Bar (Layer 1) -->
     <footer class="window-footer">
-      <div class="footer-left">
+      <div class="footer-action-row">
         <button type="button" id="btn-back" class="btn btn-secondary" style="display: none;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="19" y1="12" x2="5" y2="12"></line>
-            <polyline points="12 19 5 12 12 5"></polyline>
-          </svg>
           <span data-i18n="backBtn">ย้อนกลับ</span>
         </button>
-      </div>
-
-      <div class="footer-right">
         <button type="button" id="btn-next" class="btn btn-primary">
           <span data-i18n="nextBtn">ถัดไป</span>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

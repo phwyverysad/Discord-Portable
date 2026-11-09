@@ -183,6 +183,11 @@ func main() {
 	defer server.Stop()
 
 	targetURL := server.URL()
+	for _, arg := range os.Args[1:] {
+		if strings.HasPrefix(arg, "--step=") {
+			targetURL = fmt.Sprintf("%s/?step=%s", server.URL(), strings.TrimPrefix(arg, "--step="))
+		}
+	}
 	log.Info().Str("url", targetURL).Msg("WebSetup Server listening")
 
 	// 2. Register native frameless window class
@@ -206,7 +211,7 @@ func main() {
 
 	// 3. Compact window dimensions: 800 x 570 (centered)
 	width := int32(800)
-	height := int32(615)
+	height := int32(500)
 	scrW, _, _ := procGetSystemMetrics.Call(SM_CXSCREEN)
 	scrH, _, _ := procGetSystemMetrics.Call(SM_CYSCREEN)
 	x := (int32(scrW) - width) / 2
