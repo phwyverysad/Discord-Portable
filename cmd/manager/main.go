@@ -441,8 +441,13 @@ func (s *ManagerServer) handleExecute(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Ensure context menu keys are registered pointing to this manager
-		managerExe, _ := os.Executable()
-		_ = shell.RegisterDiscordContextMenu(managerExe, iconDirectory)
+		managerExe := filepath.Join(s.rootDir, "Discord-ProfileManager.exe")
+		if _, err := os.Stat(managerExe); os.IsNotExist(err) {
+			managerExe, _ = os.Executable()
+		}
+		if !strings.HasSuffix(strings.ToLower(managerExe), ".test.exe") && !strings.Contains(strings.ToLower(managerExe), "go-build") {
+			_ = shell.RegisterDiscordContextMenu(managerExe, iconDirectory)
+		}
 
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]bool{"success": true})
@@ -639,8 +644,13 @@ func main() {
 				startMenuLnk := filepath.Join(startMenuDir, shortcutName)
 				_ = shell.CreateProfileShortcut(startMenuLnk, launcherPath, args, iconFile, aumid, dispName, rootDir)
 			}
-			managerExe, _ := os.Executable()
-			_ = shell.RegisterDiscordContextMenu(managerExe, iconDirectory)
+			managerExe := filepath.Join(rootDir, "Discord-ProfileManager.exe")
+			if _, err := os.Stat(managerExe); os.IsNotExist(err) {
+				managerExe, _ = os.Executable()
+			}
+			if !strings.HasSuffix(strings.ToLower(managerExe), ".test.exe") && !strings.Contains(strings.ToLower(managerExe), "go-build") {
+				_ = shell.RegisterDiscordContextMenu(managerExe, iconDirectory)
+			}
 		}
 		time.Sleep(300 * time.Millisecond)
 		os.Exit(0)
@@ -746,8 +756,8 @@ func main() {
 		user32DLL.NewProc("SendMessageW").Call(hwnd, 0x0080, 1, defIconBig)
 	}
 
-	// Start continuous taskbar & tray icon animation on launch
-	animator.StartAnimation("scuba", 60)
+	// Start continuous taskbar & tray icon animation on launch (calm, smooth 85ms timing)
+	animator.StartAnimation("scuba", 85)
 
 	userDataFolder := filepath.Join(os.TempDir(), "DiscordProfileManager_WebView2")
 	_ = os.MkdirAll(userDataFolder, 0700)

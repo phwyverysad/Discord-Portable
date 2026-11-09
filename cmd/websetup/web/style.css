@@ -253,11 +253,13 @@ html, body {
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
-  min-width: 130px;
+  min-width: 145px;
+  width: max-content;
+  white-space: nowrap;
   background: #FFFFFF;
   border: 1px solid #E2E8F0;
   border-radius: 12px;
-  padding: 4px;
+  padding: 6px;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.10);
   z-index: 1000;
   opacity: 0;
@@ -275,13 +277,14 @@ html, body {
 .dropdown-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 6px 10px;
+  gap: 10px;
+  padding: 8px 14px;
   border-radius: 8px;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   font-weight: 500;
   color: var(--text-secondary);
   cursor: pointer;
+  white-space: nowrap;
   transition: all 0.15s ease;
 }
 
@@ -296,24 +299,25 @@ html, body {
   font-weight: 600;
 }
 
-.dropdown-item-left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .dropdown-item-code {
   font-size: 0.72rem;
   font-weight: 700;
-  padding: 2px 5px;
+  padding: 2px 6px;
   background: #E2E8F0;
   border-radius: 4px;
   color: var(--text-secondary);
+  flex-shrink: 0;
 }
 
 .dropdown-item.active .dropdown-item-code {
   background: var(--primary);
   color: #FFFFFF;
+}
+
+.dropdown-item-text {
+  white-space: nowrap;
+  letter-spacing: normal;
+  display: inline-block;
 }
 
 /* ==========================================================================

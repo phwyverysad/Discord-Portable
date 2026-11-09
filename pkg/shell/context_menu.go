@@ -2,6 +2,7 @@ package shell
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -38,6 +39,13 @@ func BuildExeAppliesToFilter() string {
 	return "System.FileName:=\"DiscordPTB-Portable.exe\" OR System.FileName:=\"Discord-Portable.exe\""
 }
 
+func fileExists(p string) bool {
+	if fi, err := os.Stat(p); err == nil && !fi.IsDir() {
+		return true
+	}
+	return false
+}
+
 // RegisterDiscordContextMenu registers the 2 context menu verbs ("ติดตั้งเพิ่มเติม" and "ถอนการติดตั้ง")
 // in HKCU\Software\Classes for both .lnk shortcuts and .exe files, guarded by strict AppliesTo filters
 // so they ONLY show when right-clicking our installed Discord instances.
@@ -47,8 +55,23 @@ func RegisterDiscordContextMenu(managerExePath, iconDir string) error {
 		absManager = managerExePath
 	}
 
-	addIcon := filepath.Join(iconDir, "01_yellow.ico")
-	uninstallIcon := filepath.Join(filepath.Dir(iconDir), "papp.ico")
+	targetDir := filepath.Dir(absManager)
+
+	// App icon resolution for verbs:
+	// For "ติดตั้งเพิ่มเติม": use Discord-WebSetup.exe or 01_yellow.ico or absManager
+	addIcon := absManager
+	setupExe := filepath.Join(targetDir, "Discord-WebSetup.exe")
+	if fileExists(setupExe) {
+		addIcon = setupExe
+	} else if fileExists(filepath.Join(iconDir, "01_yellow.ico")) {
+		addIcon = filepath.Join(iconDir, "01_yellow.ico")
+	}
+
+	// For "ถอนการติดตั้ง": use 05_red.ico (Red Discord icon) or absManager
+	uninstallIcon := absManager
+	if fileExists(filepath.Join(iconDir, "05_red.ico")) {
+		uninstallIcon = filepath.Join(iconDir, "05_red.ico")
+	}
 
 	lnkFilter := BuildLnkAppliesToFilter()
 	exeFilter := BuildExeAppliesToFilter()
@@ -59,7 +82,7 @@ func RegisterDiscordContextMenu(managerExePath, iconDir string) error {
 		"ติดตั้งเพิ่มเติม",
 		lnkFilter,
 		addIcon,
-		fmt.Sprintf("\"%s\" --action=add --dir=\"%s\"", absManager, filepath.Dir(absManager)),
+		fmt.Sprintf("\"%s\" --action=add --dir=\"%s\"", absManager, targetDir),
 	); err != nil {
 		return err
 	}
@@ -70,7 +93,7 @@ func RegisterDiscordContextMenu(managerExePath, iconDir string) error {
 		"ถอนการติดตั้ง",
 		lnkFilter,
 		uninstallIcon,
-		fmt.Sprintf("\"%s\" --action=uninstall --dir=\"%s\"", absManager, filepath.Dir(absManager)),
+		fmt.Sprintf("\"%s\" --action=uninstall --dir=\"%s\"", absManager, targetDir),
 	); err != nil {
 		return err
 	}
@@ -81,7 +104,7 @@ func RegisterDiscordContextMenu(managerExePath, iconDir string) error {
 		"ติดตั้งเพิ่มเติม",
 		exeFilter,
 		addIcon,
-		fmt.Sprintf("\"%s\" --action=add --dir=\"%s\"", absManager, filepath.Dir(absManager)),
+		fmt.Sprintf("\"%s\" --action=add --dir=\"%s\"", absManager, targetDir),
 	); err != nil {
 		return err
 	}
@@ -92,7 +115,7 @@ func RegisterDiscordContextMenu(managerExePath, iconDir string) error {
 		"ถอนการติดตั้ง",
 		exeFilter,
 		uninstallIcon,
-		fmt.Sprintf("\"%s\" --action=uninstall --dir=\"%s\"", absManager, filepath.Dir(absManager)),
+		fmt.Sprintf("\"%s\" --action=uninstall --dir=\"%s\"", absManager, targetDir),
 	); err != nil {
 		return err
 	}
@@ -115,6 +138,7 @@ func registerVerb(keyPath, title, appliesTo, icon, command string) error {
 	}
 	defer k.Close()
 
+	_ = k.SetStringValue("", title)
 	_ = k.SetStringValue("MUIVerb", title)
 	_ = k.SetStringValue("AppliesTo", appliesTo)
 	if icon != "" {

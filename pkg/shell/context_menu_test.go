@@ -48,4 +48,10 @@ func TestContextMenuRegistration(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Expected registry key DiscordInstallMore to be deleted")
 	}
+
+	// Restore real context menu if production app is installed
+	prodManager := `C:\Discord-PTB-Portable\Discord-ProfileManager.exe`
+	if _, err := os.Stat(prodManager); err == nil {
+		_ = RegisterDiscordContextMenu(prodManager, `C:\Discord-PTB-Portable\res\icons`)
+	}
 }

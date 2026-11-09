@@ -248,8 +248,8 @@ func main() {
 			procSendMessageW.Call(hwnd, 0x0080, 1, defIconBig)
 		}
 
-		// Start continuous taskbar & tray icon animation on launch
-		animator.StartAnimation("scuba", 60)
+		// Start continuous taskbar & tray icon animation on launch (calm, smooth 85ms timing)
+		animator.StartAnimation("scuba", 85)
 
 		userDataFolder := filepath.Join(os.Getenv("TEMP"), "discord_websetup_wv2")
 		_ = os.MkdirAll(userDataFolder, 0700)

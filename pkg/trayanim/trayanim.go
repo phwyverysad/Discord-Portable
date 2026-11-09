@@ -234,7 +234,7 @@ func (a *Animator) StartAnimation(animType string, intervalMs int) {
 		case "recording":
 			intervalMs = 80 // 12 fps pulsing audio
 		default:
-			intervalMs = 60 // ~16 fps scuba dance
+			intervalMs = 85 // calm, smooth scuba dance (~12 fps)
 		}
 	}
 
