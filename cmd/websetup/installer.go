@@ -21,20 +21,39 @@ import (
 //go:embed embedded/*
 var embeddedAssets embed.FS
 func terminateDirectoryProcesses(dir string) {
+
 	if dir == "" {
+
 		return
+
 	}
+
 	absDir, err := filepath.Abs(dir)
+
 	if err != nil {
+
 		absDir = dir
+
 	}
+
+	currentPID := os.Getpid()
+
 	psCmd := fmt.Sprintf(
-		"Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -like '%s*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }",
+
+		"Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -like '%s*' -and $_.ProcessId -ne %d -and ($_.Name -like '*DiscordPTB*' -or $_.Name -like '*Discord-Portable*') } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }",
+
 		absDir,
+
+		currentPID,
+
 	)
+
 	cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-Command", psCmd)
+
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000}
+
 	_ = cmd.Run()
+
 }
 
 
@@ -60,6 +79,7 @@ func hiddenCommand(name string, args ...string) *exec.Cmd {
 
 type InstallStatus struct {
 	Percent int    `json:"percent"`
+	Stage   int    `json:"stage"`
 	Message string `json:"message"`
 	Done    bool   `json:"done"`
 	Error   string `json:"error,omitempty"`
@@ -131,11 +151,12 @@ func resolveSetupIcon(profileID, iconDir string) string {
 	return filepath.Join(iconDir, "01_yellow.ico")
 }
 
-func updateStatus(percent int, msg string, done bool, errStr string) {
+func updateStatus(percent int, stage int, msg string, done bool, errStr string) {
 	statusMutex.Lock()
 	defer statusMutex.Unlock()
 	currentStatus = InstallStatus{
 		Percent: percent,
+		Stage:   stage,
 		Message: msg,
 		Done:    done,
 		Error:   errStr,
@@ -172,6 +193,11 @@ func downloadFile(url, destPath string) error {
 }
 
 func copyFile(src, dst string) error {
+	absSrc, errSrc := filepath.Abs(src)
+	absDst, errDst := filepath.Abs(dst)
+	if errSrc == nil && errDst == nil && strings.EqualFold(absSrc, absDst) {
+		return nil
+	}
 	in, err := os.Open(src)
 	if err != nil {
 		return err
@@ -224,7 +250,7 @@ func ExecuteInstallation(cfg InstallConfig, rootSourcePath string) error {
 		installRunningMutex.Unlock()
 	}()
 
-	updateStatus(5, "กำลังเตรียมโฟลเดอร์ติดตั้ง...", false, "")
+	updateStatus(5, 1, "กำลังเตรียมโฟลเดอร์ติดตั้ง...", false, "")
 
 	// 1. Terminate only running Discord instances in target installation directory to prevent file locking
 	if cfg.InstallDir != "" {
@@ -240,18 +266,18 @@ func ExecuteInstallation(cfg InstallConfig, rootSourcePath string) error {
 	}
 
 	if err := os.MkdirAll(cfg.InstallDir, 0755); err != nil {
-		updateStatus(0, "Error", false, err.Error())
+		updateStatus(0, 1, "Error", false, err.Error())
 		return err
 	}
 
-	updateStatus(15, "กำลังตั้งค่าความปลอดภัย...", false, "")
+	updateStatus(15, 1, "กำลังตั้งค่าความปลอดภัย...", false, "")
 	profilesDir := filepath.Join(cfg.InstallDir, "data", "profiles")
 	if err := os.MkdirAll(profilesDir, 0700); err != nil {
 		return err
 	}
 
 	// Copy Icons (all 12 colors)
-	updateStatus(25, "กำลังคัดลอกชุดไอคอน...", false, "")
+	updateStatus(25, 1, "กำลังคัดลอกชุดไอคอน...", false, "")
 	srcIcons := filepath.Join(rootSourcePath, "res", "icons")
 	dstIcons := filepath.Join(cfg.InstallDir, "res", "icons")
 	if _, err := os.Stat(srcIcons); err == nil {
@@ -259,7 +285,7 @@ func ExecuteInstallation(cfg InstallConfig, rootSourcePath string) error {
 	}
 
 	// Setup Launcher Binary in target
-	updateStatus(35, "กำลังติดตั้งตัวเปิดโปรแกรม...", false, "")
+	updateStatus(35, 1, "กำลังติดตั้งตัวเปิดโปรแกรม...", false, "")
 	srcLauncher := filepath.Join(rootSourcePath, "DiscordPTB-Portable.exe")
 	if _, err := os.Stat(srcLauncher); os.IsNotExist(err) {
 		srcLauncher = filepath.Join(rootSourcePath, "Discord-Portable.exe")
@@ -277,7 +303,7 @@ func ExecuteInstallation(cfg InstallConfig, rootSourcePath string) error {
 	}
 
 	// Deploy Discord App Binaries into app/app-1.0.1231
-	updateStatus(45, "กำลังติดตั้ง Discord PTB...", false, "")
+	updateStatus(45, 1, "กำลังติดตั้ง Discord PTB...", false, "")
 	dstAppDir := filepath.Join(cfg.InstallDir, "app", "app-1.0.1231")
 	srcAppDir := filepath.Join(rootSourcePath, "app", "app-1.0.1231")
 	if _, err := os.Stat(filepath.Join(srcAppDir, "DiscordPTB.exe")); err == nil {
@@ -291,7 +317,7 @@ func ExecuteInstallation(cfg InstallConfig, rootSourcePath string) error {
 	}
 
 	// Deploy Discord Updater database and packages into app/ (CRITICAL: prevents InconsistentInstallerState)
-	updateStatus(55, "กำลังติดตั้งฐานข้อมูลระบบ...", false, "")
+	updateStatus(55, 1, "กำลังติดตั้งฐานข้อมูลระบบ...", false, "")
 	dstAppBase := filepath.Join(cfg.InstallDir, "app")
 	_ = os.MkdirAll(dstAppBase, 0755)
 
@@ -314,6 +340,7 @@ func ExecuteInstallation(cfg InstallConfig, rootSourcePath string) error {
 	targetAppAsar := filepath.Join(resourcesDir, "app.asar")
 	targetUnderscoreAsar := filepath.Join(resourcesDir, "_app.asar")
 
+	updateStatus(60, 2, "กำลังติดตั้ง Vencord และส่วนขยาย...", false, "")
 	if cfg.InstallVencord {
 		// Vencord installation: rename app.asar -> _app.asar so Electron loads resources/app/
 		if _, err := os.Stat(targetAppAsar); err == nil {
@@ -335,7 +362,7 @@ func ExecuteInstallation(cfg InstallConfig, rootSourcePath string) error {
 	}
 
 	// Initialize Profiles
-	updateStatus(70, "กำลังสร้างพื้นที่โปรไฟล์...", false, "")
+	updateStatus(70, 3, "กำลังสร้างพื้นที่โปรไฟล์...", false, "")
 	if len(cfg.Profiles) == 0 {
 		cfg.Profiles = []string{"01_yellow"}
 	}
@@ -361,7 +388,7 @@ func ExecuteInstallation(cfg InstallConfig, rootSourcePath string) error {
 		if cfg.CreateShortcuts {
 			displayName := profileDisplayName(prof)
 			pct := 70 + int((float64(idx+1)/float64(len(cfg.Profiles)))*20)
-			updateStatus(pct, fmt.Sprintf("กำลังสร้างทางลัด %s...", displayName), false, "")
+			updateStatus(pct, 4, fmt.Sprintf("กำลังสร้างทางลัด %s...", displayName), false, "")
 
 			iconFile := resolveSetupIcon(prof, dstIcons)
 
@@ -397,6 +424,17 @@ func ExecuteInstallation(cfg InstallConfig, rootSourcePath string) error {
 				displayName,
 				cfg.InstallDir,
 			)
+			// And place directly in Programs root for instantaneous Windows Shell AUMID index resolution
+			programsRoot := filepath.Join(os.Getenv("APPDATA"), "Microsoft", "Windows", "Start Menu", "Programs")
+			_ = shell.CreateProfileShortcut(
+				filepath.Join(programsRoot, shortcutName),
+				targetLauncher,
+				args,
+				iconFile,
+				aumid,
+				displayName,
+				cfg.InstallDir,
+			)
 		}
 	}
 
@@ -412,10 +450,10 @@ func ExecuteInstallation(cfg InstallConfig, rootSourcePath string) error {
 	// Register Context Menu in Windows Registry (strictly on our Discord items!)
 	_ = shell.RegisterDiscordContextMenu(targetManager, dstIcons)
 
-	updateStatus(95, "กำลังตรวจสอบความพร้อม...", false, "")
+	updateStatus(95, 4, "กำลังตรวจสอบความพร้อม...", false, "")
 	time.Sleep(500 * time.Millisecond)
 
-	updateStatus(100, "ติดตั้งเสร็จสมบูรณ์", true, "")
+	updateStatus(100, 5, "ติดตั้งเสร็จสมบูรณ์", true, "")
 
 	// Note: Auto-launching is handled gracefully by user clicking "Finish" on Step 4
 	return nil

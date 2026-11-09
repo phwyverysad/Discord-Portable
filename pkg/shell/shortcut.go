@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"syscall"
 	"unsafe"
 )
@@ -45,9 +46,17 @@ var (
 		Fmtid: GUID{0x9F4C2855, 0x9F79, 0x4B39, [8]byte{0xA8, 0xD0, 0xE1, 0xD4, 0x2D, 0xE1, 0xD5, 0xF3}},
 		Pid:   5,
 	}
+	pkeyRelaunchCommand = PROPERTYKEY{
+		Fmtid: GUID{0x9F4C2855, 0x9F79, 0x4B39, [8]byte{0xA8, 0xD0, 0xE1, 0xD4, 0x2D, 0xE1, 0xD5, 0xF3}},
+		Pid:   2,
+	}
 	pkeyRelaunchIconResource = PROPERTYKEY{
 		Fmtid: GUID{0x9F4C2855, 0x9F79, 0x4B39, [8]byte{0xA8, 0xD0, 0xE1, 0xD4, 0x2D, 0xE1, 0xD5, 0xF3}},
 		Pid:   3,
+	}
+	pkeyRelaunchDisplayName = PROPERTYKEY{
+		Fmtid: GUID{0x9F4C2855, 0x9F79, 0x4B39, [8]byte{0xA8, 0xD0, 0xE1, 0xD4, 0x2D, 0xE1, 0xD5, 0xF3}},
+		Pid:   4,
 	}
 	shell32DLL                       = syscall.NewLazyDLL("shell32.dll")
 	procSHGetPropertyStoreForWindow = shell32DLL.NewProc("SHGetPropertyStoreForWindow")
@@ -55,6 +64,9 @@ var (
 
 // CreateProfileShortcut creates a Windows shell link (.lnk) with explicit AppUserModelID and dedicated icon.
 func CreateProfileShortcut(shortcutPath, targetPath, arguments, iconLocation, aumid, description, workingDir string) error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	_ = os.MkdirAll(filepath.Dir(shortcutPath), 0755)
 
 	procCoInitialize.Call(0)
@@ -134,11 +146,13 @@ func CreateProfileShortcut(shortcutPath, targetPath, arguments, iconLocation, au
 	return nil
 }
 
-// SetWindowProfileProperties assigns AUMID and RelaunchIconResource directly to an HWND.
-func SetWindowProfileProperties(hwnd uintptr, aumid, iconLocation string) error {
+// SetWindowProfileProperties assigns AUMID, RelaunchIconResource, RelaunchCommand and DisplayName directly to an HWND.
+func SetWindowProfileProperties(hwnd uintptr, aumid, iconLocation, relaunchCmd, displayName string) error {
 	if procSHGetPropertyStoreForWindow.Find() != nil {
 		return nil
 	}
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 	procCoInitialize.Call(0)
 	defer procCoUninitialize.Call()
 
@@ -172,6 +186,24 @@ func SetWindowProfileProperties(hwnd uintptr, aumid, iconLocation string) error 
 			Val: uintptr(unsafe.Pointer(iconUTF16)),
 		}
 		syscall.SyscallN(vtableProp[6], pProp, uintptr(unsafe.Pointer(&pkeyRelaunchIconResource)), uintptr(unsafe.Pointer(&pv)))
+	}
+
+	if relaunchCmd != "" {
+		cmdUTF16, _ := syscall.UTF16PtrFromString(relaunchCmd)
+		pv := PROPVARIANT{
+			Vt:  31, // VT_LPWSTR
+			Val: uintptr(unsafe.Pointer(cmdUTF16)),
+		}
+		syscall.SyscallN(vtableProp[6], pProp, uintptr(unsafe.Pointer(&pkeyRelaunchCommand)), uintptr(unsafe.Pointer(&pv)))
+	}
+
+	if displayName != "" {
+		dnUTF16, _ := syscall.UTF16PtrFromString(displayName)
+		pv := PROPVARIANT{
+			Vt:  31, // VT_LPWSTR
+			Val: uintptr(unsafe.Pointer(dnUTF16)),
+		}
+		syscall.SyscallN(vtableProp[6], pProp, uintptr(unsafe.Pointer(&pkeyRelaunchDisplayName)), uintptr(unsafe.Pointer(&pv)))
 	}
 
 	syscall.SyscallN(vtableProp[7], pProp) // Commit

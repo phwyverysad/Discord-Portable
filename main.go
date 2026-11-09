@@ -57,7 +57,7 @@ func init() {
 	}
 }
 
-func parseFlags(rawArgs []string) (profile string, eco bool, vencordMode bool, backupMode bool, restorePath string, filteredArgs []string) {
+func parseFlags(rawArgs []string) (profile string, eco bool, vanillaMode bool, backupMode bool, restorePath string, filteredArgs []string) {
 	profile = "01_yellow"
 	for _, arg := range rawArgs {
 		switch {
@@ -65,8 +65,10 @@ func parseFlags(rawArgs []string) (profile string, eco bool, vencordMode bool, b
 			profile = strings.TrimPrefix(arg, "--profile=")
 		case arg == "--eco":
 			eco = true
+		case arg == "--vanilla":
+			vanillaMode = true
 		case arg == "--vencord":
-			vencordMode = true
+			vanillaMode = false
 		case arg == "--backup":
 			backupMode = true
 		case strings.HasPrefix(arg, "--restore="):
@@ -152,7 +154,7 @@ func main() {
 		log.Warn().Strs("stripped_flags", stripped).Msg("Security Shield: Intercepted and blocked suspicious arguments")
 	}
 
-	profileID, ecoMode, vencordMode, doBackup, restoreFile, remainingArgs := parseFlags(safeArgs)
+	profileID, ecoMode, vanillaMode, doBackup, restoreFile, remainingArgs := parseFlags(safeArgs)
 
 	profilesBaseDir := filepath.Join(app.RootPath, "data", "profiles")
 
@@ -209,9 +211,10 @@ func main() {
 	launchArgs := []string{
 		"--user-data-dir=" + profileDataPath,
 		"--multi-instance",
+		"--profile=" + profileID,
 	}
 
-	if !vencordMode {
+	if vanillaMode {
 		launchArgs = append(launchArgs, "--vanilla")
 	}
 
@@ -286,28 +289,30 @@ func main() {
 	shortcutPath := filepath.Join(realStartMenu, shortcutName)
 	aumid := fmt.Sprintf("Discord.PTB.Profile.%s", profileID)
 
-	_ = shell.CreateProfileShortcut(
-		shortcutPath,
-		app.Process,
-		fmt.Sprintf("--user-data-dir=\"%s\" --multi-instance", profileDataPath),
-		profileIcon,
-		aumid,
-		dispName,
-		app.AppPath,
-	)
-
-	// Also register shortcut inside the redirected APPDATA so that the child Electron process finds it
-	redirectedStartMenu := filepath.Join(profilesBaseDir, "Microsoft", "Windows", "Start Menu", "Programs", "Discord Portable")
-	_ = os.MkdirAll(redirectedStartMenu, 0755)
-	_ = shell.CreateProfileShortcut(
-		filepath.Join(redirectedStartMenu, shortcutName),
-		app.Process,
-		fmt.Sprintf("--user-data-dir=\"%s\" --multi-instance", profileDataPath),
-		profileIcon,
-		aumid,
-		dispName,
-		app.AppPath,
-	)
+	programsRoot := filepath.Join(origUserAppData, "Microsoft", "Windows", "Start Menu", "Programs")
+	if _, err := os.Stat(shortcutPath); os.IsNotExist(err) {
+		_ = shell.CreateProfileShortcut(
+			shortcutPath,
+			app.Process,
+			fmt.Sprintf("--user-data-dir=\"%s\" --multi-instance", profileDataPath),
+			profileIcon,
+			aumid,
+			dispName,
+			app.AppPath,
+		)
+	}
+	rootLnk := filepath.Join(programsRoot, shortcutName)
+	if _, err := os.Stat(rootLnk); os.IsNotExist(err) {
+		_ = shell.CreateProfileShortcut(
+			rootLnk,
+			app.Process,
+			fmt.Sprintf("--user-data-dir=\"%s\" --multi-instance", profileDataPath),
+			profileIcon,
+			aumid,
+			dispName,
+			app.AppPath,
+		)
+	}
 
 	defer func() {
 		app.Close()
@@ -329,7 +334,7 @@ func main() {
 	}
 
 	// Dynamic Taskbar Icon Sync: Watch for Discord window and apply profile icon via Shell PropertyStore & WM_SETICON
-	go func(targetPid int, iconFile string, targetAumid string) {
+	go func(targetPid int, iconFile string, targetAumid string, relaunchCmd string, displayName string) {
 		if iconFile == "" {
 			return
 		}
@@ -338,7 +343,10 @@ func main() {
 		procSendMessageW := user32.NewProc("SendMessageW")
 		procEnumWindows := user32.NewProc("EnumWindows")
 		procGetWindowThreadProcessId := user32.NewProc("GetWindowThreadProcessId")
-		procIsWindowVisible := user32.NewProc("IsWindowVisible")
+		procSetClassLongPtrW := user32.NewProc("SetClassLongPtrW")
+		if procSetClassLongPtrW.Find() != nil {
+			procSetClassLongPtrW = user32.NewProc("SetClassLongW")
+		}
 
 		iconPtr, err := syscall.UTF16PtrFromString(iconFile)
 		if err != nil {
@@ -348,29 +356,27 @@ func main() {
 		hBig, _, _ := procLoadImageW.Call(0, uintptr(unsafe.Pointer(iconPtr)), 1, 32, 32, 0x0010)
 		hSmall, _, _ := procLoadImageW.Call(0, uintptr(unsafe.Pointer(iconPtr)), 1, 16, 16, 0x0010)
 
-		for i := 0; i < 40; i++ {
-			time.Sleep(500 * time.Millisecond)
+		for i := 0; i < 50; i++ {
+			time.Sleep(400 * time.Millisecond)
 			cb := syscall.NewCallback(func(hwnd uintptr, lparam uintptr) uintptr {
-				vis, _, _ := procIsWindowVisible.Call(hwnd)
-				if vis == 0 {
-					return 1
-				}
 				var pid uint32
 				procGetWindowThreadProcessId.Call(hwnd, uintptr(unsafe.Pointer(&pid)))
 				if int(pid) == targetPid {
-					_ = shell.SetWindowProfileProperties(hwnd, targetAumid, iconFile)
+					_ = shell.SetWindowProfileProperties(hwnd, targetAumid, iconFile, relaunchCmd, displayName)
 					if hSmall != 0 {
 						procSendMessageW.Call(hwnd, 0x0080, 0, hSmall)
+						procSetClassLongPtrW.Call(hwnd, ^uintptr(33), hSmall) // -34: GCLP_HICONSM
 					}
 					if hBig != 0 {
 						procSendMessageW.Call(hwnd, 0x0080, 1, hBig)
+						procSetClassLongPtrW.Call(hwnd, ^uintptr(13), hBig) // -14: GCLP_HICON
 					}
 				}
 				return 1
 			})
 			procEnumWindows.Call(cb, 0)
 		}
-	}(cmd.Process.Pid, profileIcon, aumid)
+	}(cmd.Process.Pid, profileIcon, aumid, fmt.Sprintf("\"%s\" --profile=%s", filepath.Join(app.RootPath, "DiscordPTB-Portable.exe"), profileID), dispName)
 
 	_ = cmd.Wait()
 }

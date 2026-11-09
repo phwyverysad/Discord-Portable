@@ -563,7 +563,7 @@
         .then((res) => (res.ok ? res.json() : null))
         .then((status) => {
           if (!status) return;
-          updateProgressUI(status.percent, status.message);
+          updateProgressUI(status.percent, status.message, status.stage);
           if (status.done) {
             clearInterval(state.pollTimer);
             state.pollTimer = null;
@@ -605,7 +605,7 @@
     }, 120);
   }
 
-  function updateProgressUI(percent, message, activeStage = 1) {
+  function updateProgressUI(percent, message, activeStage) {
     if (elements.progressFill) {
       elements.progressFill.style.width = `${percent}%`;
     }
@@ -616,14 +616,16 @@
       elements.progressStatus.textContent = message;
     }
 
-    // Update stage items
-    const calcStage = activeStage || (percent < 30 ? 1 : percent < 60 ? 2 : percent < 90 ? 3 : 4);
+    // Determine active stage (1 to 4, 5 means all done)
+    const stage = activeStage !== undefined && activeStage !== null ? activeStage :
+      (percent < 55 ? 1 : percent < 65 ? 2 : percent < 85 ? 3 : 4);
+
     elements.stageItems.forEach((item, idx) => {
       const s = idx + 1;
       item.classList.remove("completed", "in-progress");
-      if (s < calcStage || percent >= 100) {
+      if (percent >= 100 || stage > s) {
         item.classList.add("completed");
-      } else if (s === calcStage) {
+      } else if (stage === s) {
         item.classList.add("in-progress");
       }
     });
