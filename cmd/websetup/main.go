@@ -206,7 +206,7 @@ func main() {
 
 	// 3. Compact window dimensions: 800 x 570 (centered)
 	width := int32(800)
-	height := int32(570)
+	height := int32(615)
 	scrW, _, _ := procGetSystemMetrics.Call(SM_CXSCREEN)
 	scrH, _, _ := procGetSystemMetrics.Call(SM_CYSCREEN)
 	x := (int32(scrW) - width) / 2

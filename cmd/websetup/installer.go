@@ -44,6 +44,7 @@ type InstallConfig struct {
 	InstallMode     string   `json:"installMode"` // "pc" or "usb"
 	EcoMode         bool     `json:"ecoMode"`
 	Profiles        []string `json:"profiles"`
+	InstallVencord  bool     `json:"installVencord"`
 	LaunchOnFinish  bool     `json:"launchOnFinish"`
 	CreateShortcuts bool     `json:"createShortcuts"`
 }
@@ -307,23 +308,27 @@ func ExecuteInstallation(cfg InstallConfig, rootSourcePath string) error {
 	}
 
 	// Setup Vencord Client Mod and Unified Host Loader
-	dstVencordApp := filepath.Join(dstAppDir, "resources", "app")
-	srcVencord := filepath.Join(rootSourcePath, "res", "vencord")
-	if _, err := os.Stat(srcVencord); err == nil {
-		_ = copyDir(srcVencord, dstVencordApp)
-	}
-
-	// Ensure Electron loads our host engine from resources/app
 	resourcesDir := filepath.Join(dstAppDir, "resources")
+	dstVencordApp := filepath.Join(resourcesDir, "app")
+	srcVencord := filepath.Join(rootSourcePath, "res", "vencord")
 	targetAppAsar := filepath.Join(resourcesDir, "app.asar")
 	targetUnderscoreAsar := filepath.Join(resourcesDir, "_app.asar")
 
-	if _, err := os.Stat(targetAppAsar); err == nil {
-		if _, err2 := os.Stat(targetUnderscoreAsar); os.IsNotExist(err2) {
-			_ = os.Rename(targetAppAsar, targetUnderscoreAsar)
+	// If _app.asar exists from previous faulty installs, restore it to app.asar
+	if _, err := os.Stat(targetUnderscoreAsar); err == nil {
+		if _, errApp := os.Stat(targetAppAsar); os.IsNotExist(errApp) {
+			_ = os.Rename(targetUnderscoreAsar, targetAppAsar)
 		} else {
-			_ = os.Remove(targetAppAsar)
+			_ = os.Remove(targetUnderscoreAsar)
 		}
+	}
+
+	if cfg.InstallVencord {
+		if _, err := os.Stat(srcVencord); err == nil {
+			_ = copyDir(srcVencord, dstVencordApp)
+		}
+	} else {
+		_ = os.RemoveAll(dstVencordApp)
 	}
 
 	// Initialize Profiles
