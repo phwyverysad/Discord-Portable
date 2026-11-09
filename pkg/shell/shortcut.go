@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"syscall"
 	"unsafe"
 )
@@ -60,7 +61,22 @@ var (
 	}
 	shell32DLL                       = syscall.NewLazyDLL("shell32.dll")
 	procSHGetPropertyStoreForWindow = shell32DLL.NewProc("SHGetPropertyStoreForWindow")
+	procSHChangeNotify               = shell32DLL.NewProc("SHChangeNotify")
 )
+
+const (
+	SHCNE_ASSOCCHANGED = 0x08000000
+	SHCNE_UPDATEITEM   = 0x00002000
+	SHCNF_IDLIST       = 0x0000
+	SHCNF_PATHW        = 0x0005
+)
+
+// RefreshShellIcons invalidates the Windows shell icon cache and forces Explorer to redraw all icons.
+func RefreshShellIcons() {
+	if procSHChangeNotify.Find() == nil {
+		procSHChangeNotify.Call(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, 0, 0)
+	}
+}
 
 // CreateProfileShortcut creates a Windows shell link (.lnk) with explicit AppUserModelID and dedicated icon.
 func CreateProfileShortcut(shortcutPath, targetPath, arguments, iconLocation, aumid, description, workingDir string) error {
@@ -143,6 +159,10 @@ func CreateProfileShortcut(shortcutPath, targetPath, arguments, iconLocation, au
 		return fmt.Errorf("IPersistFile.Save failed: 0x%x", hrSave)
 	}
 
+	if procSHChangeNotify.Find() == nil {
+		procSHChangeNotify.Call(SHCNE_UPDATEITEM, SHCNF_PATHW, uintptr(unsafe.Pointer(destUTF16)), 0)
+	}
+
 	return nil
 }
 
@@ -210,3 +230,27 @@ func SetWindowProfileProperties(hwnd uintptr, aumid, iconLocation, relaunchCmd, 
 	return nil
 }
 
+
+var canonicalProfiles = map[string]string{
+	"1": "01_yellow", "01": "01_yellow", "yellow": "01_yellow", "01_yellow": "01_yellow", "profile_1": "01_yellow", "profile_01": "01_yellow",
+	"2": "02_yellow_orange", "02": "02_yellow_orange", "yellow_orange": "02_yellow_orange", "02_yellow_orange": "02_yellow_orange", "profile_2": "02_yellow_orange", "profile_02": "02_yellow_orange",
+	"3": "03_orange", "03": "03_orange", "orange": "03_orange", "03_orange": "03_orange", "profile_3": "03_orange", "profile_03": "03_orange",
+	"4": "04_red_orange", "04": "04_red_orange", "red_orange": "04_red_orange", "04_red_orange": "04_red_orange", "profile_4": "04_red_orange", "profile_04": "04_red_orange",
+	"5": "05_red", "05": "05_red", "red": "05_red", "05_red": "05_red", "profile_5": "05_red", "profile_05": "05_red",
+	"6": "06_red_violet", "06": "06_red_violet", "red_violet": "06_red_violet", "06_red_violet": "06_red_violet", "profile_6": "06_red_violet", "profile_06": "06_red_violet",
+	"7": "07_violet", "07": "07_violet", "violet": "07_violet", "07_violet": "07_violet", "profile_7": "07_violet", "profile_07": "07_violet",
+	"8": "08_blue_violet", "08": "08_blue_violet", "blue_violet": "08_blue_violet", "08_blue_violet": "08_blue_violet", "profile_8": "08_blue_violet", "profile_08": "08_blue_violet",
+	"9": "09_blue", "09": "09_blue", "blue": "09_blue", "09_blue": "09_blue", "profile_9": "09_blue", "profile_09": "09_blue",
+	"10": "10_blue_green", "blue_green": "10_blue_green", "10_blue_green": "10_blue_green", "profile_10": "10_blue_green",
+	"11": "11_green", "green": "11_green", "11_green": "11_green", "profile_11": "11_green",
+	"12": "12_yellow_green", "yellow_green": "12_yellow_green", "12_yellow_green": "12_yellow_green", "profile_12": "12_yellow_green",
+}
+
+// CanonicalProfile returns the canonical profile ID (e.g. "04_red_orange") from any input variant.
+func CanonicalProfile(id string) string {
+	cleaned := strings.ToLower(strings.TrimSpace(id))
+	if canon, ok := canonicalProfiles[cleaned]; ok {
+		return canon
+	}
+	return "01_yellow"
+}

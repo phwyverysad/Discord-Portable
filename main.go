@@ -81,26 +81,16 @@ func parseFlags(rawArgs []string) (profile string, eco bool, vanillaMode bool, b
 }
 
 func resolveIcon(profileID string, rootPath string) string {
-	// Clean profile ID
-	id := strings.TrimSpace(profileID)
-	// Try direct icon match in res/icons
 	iconDir := filepath.Join(rootPath, "res", "icons")
-	directMatch := filepath.Join(iconDir, id+".ico")
-	if _, err := os.Stat(directMatch); err == nil {
-		return directMatch
+	canon := shell.CanonicalProfile(profileID)
+	target := filepath.Join(iconDir, canon+".ico")
+	if _, err := os.Stat(target); err == nil {
+		return target
 	}
 
-	// Match by prefix (e.g. "1" matches "01_yellow.ico")
-	entries, err := os.ReadDir(iconDir)
-	if err == nil {
-		for _, entry := range entries {
-			name := entry.Name()
-			if strings.HasSuffix(strings.ToLower(name), ".ico") {
-				if strings.HasPrefix(name, fmt.Sprintf("%02s_", id)) || strings.HasPrefix(name, id+"_") {
-					return filepath.Join(iconDir, name)
-				}
-			}
-		}
+	directMatch := filepath.Join(iconDir, strings.TrimSpace(profileID)+".ico")
+	if _, err := os.Stat(directMatch); err == nil {
+		return directMatch
 	}
 
 	return filepath.Join(rootPath, "res", "papp.ico")
@@ -324,10 +314,9 @@ func main() {
 		Str("icon", profileIcon).
 		Msg("Launching Discord PTB Portable Profile...")
 
-	// Clean launch Discord PTB GUI with no console window
+	// Clean launch Discord PTB GUI
 	cmd := exec.Command(app.Process, launchArgs...)
 	cmd.Dir = electronAppPath
-	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 	if err := cmd.Start(); err != nil {
 		log.Fatal().Err(err).Msg("Failed to start Discord PTB")
 		return

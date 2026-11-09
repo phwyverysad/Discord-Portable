@@ -131,23 +131,17 @@ func profileDisplayName(prof string) string {
 }
 
 func resolveSetupIcon(profileID, iconDir string) string {
-	id := strings.TrimSpace(profileID)
-	directMatch := filepath.Join(iconDir, id+".ico")
+	canon := shell.CanonicalProfile(profileID)
+	target := filepath.Join(iconDir, canon+".ico")
+	if _, err := os.Stat(target); err == nil {
+		return target
+	}
+
+	directMatch := filepath.Join(iconDir, strings.TrimSpace(profileID)+".ico")
 	if _, err := os.Stat(directMatch); err == nil {
 		return directMatch
 	}
 
-	entries, err := os.ReadDir(iconDir)
-	if err == nil {
-		for _, entry := range entries {
-			name := entry.Name()
-			if strings.HasSuffix(strings.ToLower(name), ".ico") {
-				if strings.HasPrefix(name, fmt.Sprintf("%02s_", id)) || strings.HasPrefix(name, id+"_") {
-					return filepath.Join(iconDir, name)
-				}
-			}
-		}
-	}
 	return filepath.Join(iconDir, "01_yellow.ico")
 }
 
@@ -278,8 +272,21 @@ func ExecuteInstallation(cfg InstallConfig, rootSourcePath string) error {
 
 	// Copy Icons (all 12 colors)
 	updateStatus(25, 1, "กำลังคัดลอกชุดไอคอน...", false, "")
-	srcIcons := filepath.Join(rootSourcePath, "res", "icons")
 	dstIcons := filepath.Join(cfg.InstallDir, "res", "icons")
+	_ = os.MkdirAll(dstIcons, 0755)
+
+	// Unpack embedded icons to guarantee all 12 icons are always present
+	if entries, err := embeddedAssets.ReadDir("embedded/icons"); err == nil {
+		for _, e := range entries {
+			if !e.IsDir() {
+				if data, err := embeddedAssets.ReadFile("embedded/icons/" + e.Name()); err == nil {
+					_ = os.WriteFile(filepath.Join(dstIcons, e.Name()), data, 0644)
+				}
+			}
+		}
+	}
+
+	srcIcons := filepath.Join(rootSourcePath, "res", "icons")
 	if _, err := os.Stat(srcIcons); err == nil {
 		_ = copyDir(srcIcons, dstIcons)
 	}
@@ -437,6 +444,9 @@ func ExecuteInstallation(cfg InstallConfig, rootSourcePath string) error {
 			)
 		}
 	}
+
+	// Refresh Windows Shell icon cache immediately
+	shell.RefreshShellIcons()
 
 	// Copy Profile Manager Binary into target installation directory
 	srcManager := filepath.Join(rootSourcePath, "Discord-ProfileManager.exe")
