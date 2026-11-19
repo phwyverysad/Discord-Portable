@@ -18,6 +18,7 @@ import (
 	"github.com/portapps/discord-ptb-portable/pkg/backup"
 	"github.com/portapps/discord-ptb-portable/pkg/rpc"
 	"github.com/portapps/discord-ptb-portable/pkg/security"
+	"github.com/portapps/discord-ptb-portable/pkg/sfx"
 	"github.com/portapps/discord-ptb-portable/pkg/shell"
 	"github.com/portapps/discord-ptb-portable/pkg/updater"
 	"github.com/portapps/portapps/v3"
@@ -32,6 +33,9 @@ var defaultShortcut []byte
 //go:embed res/pinned_update.json
 var pinnedUpdate []byte
 
+//go:embed portapp.json
+var embeddedPortappJSON []byte
+
 type config struct {
 	Cleanup bool `yaml:"cleanup" mapstructure:"cleanup"`
 }
@@ -44,7 +48,28 @@ var (
 )
 
 func init() {
-	var err error
+	procFreeConsole.Call()
+
+	// 1. Determine execution directory
+	ex, err := os.Executable()
+	if err != nil {
+		ex, _ = filepath.Abs(os.Args[0])
+	}
+	exeDir := filepath.Dir(ex)
+
+	// 2. Ensure portable runtime & payload unpacked BEFORE portapps initializes
+	runtimeRoot := sfx.EnsurePortableRuntime(exeDir)
+
+	// 3. Guarantee portapp.json exists in runtimeRoot and exeDir
+	for _, dir := range []string{exeDir, runtimeRoot} {
+		if dir == "" {
+			continue
+		}
+		pjson := filepath.Join(dir, "portapp.json")
+		if _, err := os.Stat(pjson); os.IsNotExist(err) && len(embeddedPortappJSON) > 0 {
+			_ = os.WriteFile(pjson, embeddedPortappJSON, 0644)
+		}
+	}
 
 	// Default config
 	cfg = &config{
@@ -54,6 +79,18 @@ func init() {
 	// Init app
 	if app, err = portapps.NewWithCfg("discord-ptb-portable", "DiscordPTB", cfg); err != nil {
 		log.Fatal().Err(err).Msg("Cannot initialize application. See log file for more info.")
+	}
+
+	if runtimeRoot != "" && runtimeRoot != app.RootPath {
+		app.RootPath = runtimeRoot
+		app.AppPath = filepath.Join(runtimeRoot, "app")
+		app.DataPath = filepath.Join(runtimeRoot, "data")
+
+		if runtimeRoot != exeDir {
+			_ = os.Remove(filepath.Join(exeDir, "portapp.json"))
+			_ = os.Remove(filepath.Join(exeDir, "discord-ptb-portable.sample.yml"))
+			_ = os.Remove(filepath.Join(exeDir, "log"))
+		}
 	}
 }
 
@@ -145,6 +182,18 @@ func main() {
 	}
 
 	profileID, ecoMode, vanillaMode, doBackup, restoreFile, remainingArgs := parseFlags(safeArgs)
+
+	for _, a := range remainingArgs {
+		if a == "--manager" || a == "--setup" {
+			mgrExe := filepath.Join(app.RootPath, "Discord-ProfileManager.exe")
+			if _, err := os.Stat(mgrExe); err == nil {
+				cmdMgr := exec.Command(mgrExe)
+				cmdMgr.Dir = app.RootPath
+				_ = cmdMgr.Start()
+				return
+			}
+		}
+	}
 
 	profilesBaseDir := filepath.Join(app.RootPath, "data", "profiles")
 
