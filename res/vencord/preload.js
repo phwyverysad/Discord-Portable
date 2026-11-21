@@ -1,4 +1,4 @@
-// Vencord a846785
+// Vencord ce9355e
 // Standalone: true
 // Platform: Universal
 // Updater Disabled: false
