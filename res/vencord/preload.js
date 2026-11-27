@@ -1,4 +1,4 @@
-// Vencord d086992
+// Vencord ff5810d
 // Standalone: true
 // Platform: Universal
 // Updater Disabled: false
